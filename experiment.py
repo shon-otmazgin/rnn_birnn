@@ -56,11 +56,11 @@ class LangRNN(nn.Module):
         print(embds.shape)
         embds = embds.unsqueeze(0) #[1, sequence, emb]
         print(embds.shape)
-        _, (h, c) = self.rnn(embds) #[1, sequence, out_dim]
+        _, (h, c) = self.rnn(embds) #[1, 1, out_dim]
         print(h.shape)
-        h = h.squeeze(1)
+        h = h.squeeze(1) #[1, out_dim]
         print(h.shape)
-        probs = self.mlp(h)
+        probs = self.mlp(h) #[1, 2]
         print(probs.shape)
         print(probs)
 
