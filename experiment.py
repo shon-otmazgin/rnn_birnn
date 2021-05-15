@@ -121,6 +121,7 @@ if __name__ == '__main__':
 
     train_dataset = LangDataset('train_pos', 'train_neg')
     test_dataset = LangDataset('test_pos', 'test_neg')
+
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
 
