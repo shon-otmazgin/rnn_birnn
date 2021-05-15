@@ -74,7 +74,6 @@ def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     train_loss = 0
-    train_correct = 0
 
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for e in train_iterator:
@@ -91,18 +90,33 @@ def train(model, train_loader, epochs, device):
             optimizer.step()
 
             train_loss += loss.item()
-            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            train_correct += preds.eq(y).sum().item()
+            # preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
+            # train_correct += preds.eq(y).sum().item()
             # print(y)
             # print(preds)
 
         train_loss /= len(train_loader.dataset)
-        train_correct /= len(train_loader.dataset)
+        # train_correct /= len(train_loader.dataset)
 
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.3f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.3f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
+        acc = test(model, train_loader, device)
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {acc:.8f}')
         train_loss = 0
-        train_correct = 0
+
+
+def test(model, loader, device):
+    correct = 0
+
+    model.eval()
+    with torch.no_grad():
+        for xx_pad, yy_pad, x_lens, y_lens in enumerate(loader):
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+
+            logits = model(input_ids, x_lens)  # [batch, 1]
+            preds = logits.sigmoid().round()   # get the index of the max log-probability/logits
+            correct += preds.eq(y).sum().item()
+
+    return correct / len(loader.dataset)
 
 
 if __name__ == '__main__':
