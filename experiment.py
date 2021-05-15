@@ -83,4 +83,5 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
     model = LangRNN()
+    model.to(device)
     train(model, train_loader, 20, device)
