@@ -93,6 +93,8 @@ def train(model, train_loader, epochs, device):
             train_loss += loss.item()
             preds = logits.max(dim=1, keepdim=True)[1]  # get the index of the max log-probability/logits
             train_correct += preds.eq(y).sum().item()
+            print(y)
+            print(preds)
 
         train_loss /= len(train_loader.dataset)
         train_correct /= len(train_loader.dataset)
