@@ -111,6 +111,11 @@ def test(model, loader, device):
             logits = model(input_ids, x_lens)  # [batch, 1]
             preds = logits.sigmoid().round()   # get the index of the max log-probability/logits
             correct += preds.eq(y).sum().item()
+            # print(y.squeeze())
+            # print(logits.squeeze())
+            # print(logits.sigmoid().squeeze())
+            # print(logits.sigmoid().round().squeeze())
+            # print()
 
     return correct / len(loader.dataset)
 
@@ -127,5 +132,5 @@ if __name__ == '__main__':
 
     model = LangRNN()
     model.to(device)
-    epochs = 5
+    epochs = 10
     train(model, train_loader, test_loader, epochs, device)
