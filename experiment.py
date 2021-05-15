@@ -1,13 +1,24 @@
 import random
 import torch
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 from tqdm import tqdm, trange
 from torch.utils.data import Dataset, DataLoader
 
 
+def pad_collate(batch):
+  (xx, yy) = zip(*batch)
+  x_lens = [len(x) for x in xx]
+  y_lens = [len(y) for y in yy]
+
+  xx_pad = pad_sequence(xx, batch_first=True, padding_value=13)
+  yy_pad = pad_sequence(yy, batch_first=True, padding_value=13)
+
+  return xx_pad, yy_pad, x_lens, y_lens
+
 class LangDataset(Dataset):
     def __init__(self, pos_path, neg_path):
-        self.c2i = {'a': 0, 'b': 1, 'c': 2, 'd': 3, '1': 4, '2': 5, '3': 6, '4': 7, '5': 8, '6': 9, '7': 10, '8': 11, '9': 12}
+        self.c2i = {'a': 0, 'b': 1, 'c': 2, 'd': 3, '1': 4, '2': 5, '3': 6, '4': 7, '5': 8, '6': 9, '7': 10, '8': 11, '9': 12, '[PAD]': 13}
 
         self.examples = []
         with open(pos_path, 'r') as f:
@@ -28,7 +39,8 @@ class LangDataset(Dataset):
     def _tensorize_example(self, example):
         x, y = example
         idxs = [self.c2i[c] for c in x]
-        return torch.tensor(idxs, dtype=torch.long), torch.tensor(y, dtype=torch.float)
+        y = torch.zeros(1) if y == 0 else torch.ones(1)
+        return torch.tensor(idxs, dtype=torch.long), y
 
 
 class LangRNN(nn.Module):
@@ -37,7 +49,7 @@ class LangRNN(nn.Module):
         self.dropout = 0.3
         self.s_dim = 768
         self.emb_size = 300
-        self.vocab_size = 13
+        self.vocab_size = 14
 
         self.char_emb = nn.Embedding(self.vocab_size, self.emb_size)
 
@@ -50,11 +62,12 @@ class LangRNN(nn.Module):
             nn.Linear(1024, 1)
         )
 
-    def forward(self, input_ids):
-        embds = self.char_emb(input_ids)    #[batch, sequence, emb]
-        _, (h, c) = self.rnn(embds)         #[batch, 1, out_dim]
-        h = h.squeeze(1)                    #[batch, out_dim]
-        return self.mlp(h)                  #[batch, 1]
+    def forward(self, input_ids, input_lens):
+        embds = self.char_emb(input_ids)    #[batch, sequence_len, emb]
+        x_packed = pack_padded_sequence(embds, input_lens, batch_first=True, enforce_sorted=False)
+        _, (h, c) = self.rnn(x_packed)         #[batch, sequence_len, out_dim]
+        h = h.squeeze(0)                        #[batch, out_dim]
+        return self.mlp(h)                      #[batch, 1]
 
 
 def train(model, train_loader, epochs, device):
@@ -64,12 +77,13 @@ def train(model, train_loader, epochs, device):
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for epoch in train_iterator:
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-        for step, (input_ids, y) in enumerate(epoch_iterator):
+        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
-            input_ids, y = input_ids.to(device), y.to(device)
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+            input_lens = x_lens
 
-            logits = model(input_ids)   #[batch, 1]
-            loss = criterion(logits.squeeze(1), y)
+            logits = model(input_ids, input_lens)   #[batch, 1]
+            loss = criterion(logits, y)
 
             loss.backward()
             optimizer.step()
@@ -80,7 +94,7 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
