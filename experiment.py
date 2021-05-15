@@ -81,10 +81,10 @@ def train(model, train_loader, eval_loader, epochs, device):
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
             model.zero_grad()
-            input_ids, y = xx_pad.to(device), yy_pad.to(device)
-            input_lens = x_lens
 
-            logits = model(input_ids, input_lens)   #[batch, 1]
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+
+            logits = model(input_ids, x_lens)   #[batch, 1]
             loss = criterion(logits, y)
 
             loss.backward()
@@ -108,12 +108,9 @@ def eval(model, eval_loader, device):
     model.eval()
     with torch.no_grad():
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(eval_loader):
-
-            model.zero_grad()
             input_ids, y = xx_pad.to(device), yy_pad.to(device)
-            input_lens = x_lens
 
-            logits = model(input_ids, input_lens)   #[batch, 1]
+            logits = model(input_ids, x_lens)   #[batch, 1]
             loss = criterion(logits, y)
 
             eval_loss += loss.item()
