@@ -1,4 +1,5 @@
 import random
+import time
 import os
 import torch
 from torch import nn
@@ -132,8 +133,9 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    accuracies, epochs, sizes = [], [], []
+    accuracies, epochs, sizes, clock_time = [], [], [], []
     for l in range(50, 550, 50):
+        start = time.time()
         print(f'Dataset size: {l*2}')
         os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
         os.system(f'python gen_examples.py --n {l//10} --suffix_file_name test')
@@ -153,7 +155,11 @@ if __name__ == '__main__':
         accuracies.append(acc)
         epochs.append(e)
         sizes.append(l*2)
+        end = time.time()
+
+        clock_time.append(end-start)
 
     print(sizes)
     print(accuracies)
     print(e)
+    print(clock_time)
