@@ -1,7 +1,8 @@
 import random
 import torch
 from torch import nn
-from torch.utils.data import Dataset
+from tqdm import tqdm, trange
+from torch.utils.data import Dataset, DataLoader
 
 
 class LangDataset(Dataset):
@@ -27,7 +28,7 @@ class LangDataset(Dataset):
     def _tensorize_example(self, example):
         x, y = example
         idxs = [self.c2i[c] for c in x]
-        return torch.tensor(idxs, dtype=torch.long), torch.tensor(y, dtype=torch.long)
+        return torch.tensor(idxs, dtype=torch.long), torch.tensor(y, dtype=torch.float)
 
 
 class LangRNN(nn.Module):
@@ -46,31 +47,39 @@ class LangRNN(nn.Module):
             nn.ReLU(),
             nn.LayerNorm(1024),
             nn.Dropout(self.dropout),
-            nn.Linear(1024, 2),
-            nn.Softmax(dim=1)
+            nn.Linear(1024, 1)
         )
 
     def forward(self, input_ids):
-        print(input_ids.shape)
-        embds = self.char_emb(input_ids) #[sequence, emb]
-        print(embds.shape)
-        embds = embds.unsqueeze(0) #[1, sequence, emb]
-        print(embds.shape)
-        _, (h, c) = self.rnn(embds) #[1, 1, out_dim]
-        print(h.shape)
-        h = h.squeeze(1) #[1, out_dim]
-        print(h.shape)
-        probs = self.mlp(h) #[1, 2]
-        print(probs.shape)
-        print(probs)
+        embds = self.char_emb(input_ids)    #[batch, sequence, emb]
+        _, (h, c) = self.rnn(embds)         #[batch, 1, out_dim]
+        h = h.squeeze(1)                    #[batch, out_dim]
+        return self.mlp(h)                  #[batch, 1]
 
 
+def train(model, train_loader, epochs, device):
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+
+    train_iterator = trange(0, epochs, desc="Epoch", position=0)
+    for epoch in train_iterator:
+        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
+        for step, (input_ids, y) in enumerate(epoch_iterator):
+            model.train()
+            input_ids, y = input_ids.to(device), y.to(device)
+
+            logits = model(input_ids)   #[batch, 1]
+            loss = criterion(logits.squeeze(1), y)
+
+            loss.backward()
+            optimizer.step()
 
 
+if __name__ == '__main__':
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-train_dataset = LangDataset('train_pos', 'train_neg')
-print(len(train_dataset))
+    train_dataset = LangDataset('train_pos', 'train_neg')
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
-model = LangRNN()
-x, y = train_dataset[4]
-model(x)
+    model = LangRNN()
+    train(model, train_loader, 20, device)
