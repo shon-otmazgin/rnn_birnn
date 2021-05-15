@@ -155,11 +155,11 @@ if __name__ == '__main__':
         accuracies.append(acc)
         epochs.append(e)
         sizes.append(l*2)
-        end = time.time()
 
+        end = time.time()
         clock_time.append(end-start)
 
     print(sizes)
     print(accuracies)
-    print(e)
+    print(epochs)
     print(clock_time)
