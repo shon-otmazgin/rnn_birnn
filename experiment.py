@@ -28,7 +28,7 @@ class LangDataset(Dataset):
             for ex in f.readlines():
                 self.examples.append((ex.strip(), 0))
         self.examples = [self._tensorize_example(e) for e in self.examples]
-        random.shuffle(self.examples)
+        # random.shuffle(self.examples)
 
     def __len__(self):
         return len(self.examples)
@@ -70,14 +70,13 @@ class LangRNN(nn.Module):
         return self.mlp(h)                      #[batch, 1]
 
 
-def train(model, train_loader, epochs, device):
+def train(model, train_loader, test_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    train_loss = 0
-    train_correct = 0
 
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for e in train_iterator:
+        train_loss = 0
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
@@ -91,19 +90,14 @@ def train(model, train_loader, epochs, device):
             optimizer.step()
 
             train_loss += loss.item()
-            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            train_correct += preds.eq(y).sum().item()
-            # print(y)
-            # print(preds)
 
         train_loss /= len(train_loader.dataset)
-        train_correct /= len(train_loader.dataset)
+        train_acc = test(model, train_loader, device)
+        test_acc = test(model, test_loader, device)
 
         print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
-        acc = test(model, train_loader, device)
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train correct:  {train_correct:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {acc:.8f}')
-        train_loss = 0
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_acc:.8f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Test ACC:  {test_acc:.8f}')
 
 
 def test(model, loader, device):
@@ -126,8 +120,11 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
+    test_dataset = LangDataset('test_pos', 'test_neg')
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
-    train(model, train_loader, 20, device)
+    epochs = 5
+    train(model, train_loader, test_loader, epochs, device)
