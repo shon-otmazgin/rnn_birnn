@@ -112,9 +112,9 @@ def eval(model, eval_loader, device):
 
             logits = model(input_ids, x_lens)   #[batch, 1]
             loss = criterion(logits, y)
+            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
 
             eval_loss += loss.item()
-            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
             eval_correct += preds.eq(y).sum().item()
 
         eval_loss /= len(eval_loader.dataset)
@@ -128,9 +128,9 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=pad_collate)
     test_dataset = LangDataset('test_pos', 'test_neg')
-    test_loader = DataLoader(train_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
+    test_loader = DataLoader(train_dataset, batch_size=8, shuffle=False, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
