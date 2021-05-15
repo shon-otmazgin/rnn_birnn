@@ -2,33 +2,19 @@ import argparse
 import random
 
 
-# def gen_examples(reg, n, file):
-#     if n <= 0:
-#         return
-#     with open(file, 'w') as f:
-#         for i in range(n):
-#             s = []
-#             for g in reg:
-#                 stop = random.random()          # generate random prob to stop
-#                 while True:
-#                     s.append(g if g != r'\d' else str(random.randint(1, 9)))
-#                     if random.random() > stop:   # generate the same char
-#                         break
-#             f.write(''.join(s) + '\n')
-
 def gen_examples(reg, n, file):
     if n <= 0:
         return
     with open(file, 'w') as f:
         for i in range(n):
             s = []
-            stop = random.random()          # generate random prob to stop
-            while True:
-                i = random.randint(0, 1)
-                s.append('a' if i == 0 else 'b')
-                if random.random() > stop:   # generate the same char
-                    break
-            f.write(''.join(s) + ''.join(s[::-1]) + '\n')
+            for g in reg:
+                stop = random.random()          # generate random prob to stop
+                while True:
+                    s.append(g if g != r'\d' else str(random.randint(1, 9)))
+                    if random.random() > stop:   # generate the same char
+                        break
+            f.write(''.join(s) + '\n')
 
 
 if __name__ == '__main__':
