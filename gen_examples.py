@@ -1,5 +1,5 @@
 import argparse
-import rstr
+import random
 
 
 def gen_examples(reg, n, file):
@@ -7,8 +7,14 @@ def gen_examples(reg, n, file):
         return
     with open(file, 'w') as f:
         for i in range(n):
-            f.write(rstr.xeger(reg) + '\n')
-
+            s = []
+            for g in reg:
+                stop = random.random()          # generate random prob to stop
+                while True:
+                    s.append(g if g != r'\d' else str(random.randint(1, 9)))
+                    if random.random() > stop:   # generate the same char
+                        break
+            f.write(''.join(s) + '\n')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Language generator')
@@ -18,8 +24,8 @@ if __name__ == '__main__':
     parser.add_argument("--neg_file", type=str, default='neg_examples', help='negative examples output file (default: neg_examples)')
     args = parser.parse_args()
 
-    pos_reg = r'[1-9]+a+[1-9]+b+[1-9]+c+[1-9]+d+[1-9]+'
-    neg_reg = r'[1-9]+a+[1-9]+c+[1-9]+b+[1-9]+d+[1-9]+'
+    pos_reg = [r'\d', r'a', r'\d', r'b', r'\d', r'c', r'\d', r'd', r'\d']
+    neg_reg = [r'\d', r'a', r'\d', r'c', r'\d', r'b', r'\d', r'd', r'\d']
 
     gen_examples(pos_reg, args.pos, args.pos_file)
     gen_examples(neg_reg, args.neg, args.neg_file)
