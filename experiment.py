@@ -132,6 +132,7 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
+    accuracies, epochs, sizes = [], [], []
     for l in range(50, 550, 50):
         print(f'Dataset size: {l*2}')
         os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
@@ -149,3 +150,11 @@ if __name__ == '__main__':
         acc, e = train(model, train_loader, test_loader, epochs, device)
         print(f'Acc: {acc}, Epochs: {e}')
         print()
+
+        accuracies.append(acc)
+        epochs.append(e)
+        sizes.append(l*2)
+
+    print(sizes)
+    print(accuracies)
+    print(e)
