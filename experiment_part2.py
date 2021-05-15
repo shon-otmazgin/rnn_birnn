@@ -13,14 +13,14 @@ def pad_collate(batch):
   x_lens = [len(x) for x in xx]
   y_lens = [len(y) for y in yy]
 
-  xx_pad = pad_sequence(xx, batch_first=True, padding_value=2)
-  yy_pad = pad_sequence(yy, batch_first=True, padding_value=2)
+  xx_pad = pad_sequence(xx, batch_first=True, padding_value=9)
+  yy_pad = pad_sequence(yy, batch_first=True, padding_value=9)
 
   return xx_pad, yy_pad, x_lens, y_lens
 
 class LangDataset(Dataset):
     def __init__(self, pos_path, neg_path):
-        self.c2i = {'0': 0, '1': 1, '[PAD]': 2}
+        self.c2i = {'1': 0, '2': 1, '3': 2, '4': 3, '5': 4, '6': 5, '7': 6, '8': 7, '9': 8, '[PAD]': 9}
 
         self.examples = []
         with open(pos_path, 'r') as f:
@@ -51,7 +51,7 @@ class LangRNN(nn.Module):
         self.dropout = 0.3
         self.s_dim = 768
         self.emb_size = 300
-        self.vocab_size = 14
+        self.vocab_size = 10
 
         self.char_emb = nn.Embedding(self.vocab_size, self.emb_size)
 
@@ -100,14 +100,14 @@ def train(model, train_loader, test_loader, device):
         train_loss += loss.item()
         losses.append(loss.item() / ((step+1) * y.shape[0]))
 
-        train_acc = test(model, train_loader, device)
-        train_accuracies.append(train_acc)
         test_acc = test(model, test_loader, device)
         test_accuracies.append(test_acc)
 
         steps.append((step+1) * y.shape[0])
         wall_clock.append(end-start)
 
+    train_acc = test(model, train_loader, device)
+    train_accuracies.append(train_acc)
     return losses, train_accuracies, test_accuracies, steps, wall_clock
 
 
@@ -130,10 +130,10 @@ if __name__ == '__main__':
     random.seed(42)
     torch.manual_seed(42)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    size = 500
+    size = 5000
     print(f'Train Dataset size: {size * 2}')
     print(f'Test Dataset size: {size // 10 * 2}')
     os.system(f'python gen_part2.py --n {size} --suffix_file_name train')

@@ -11,7 +11,7 @@ def isPalindrome(s):
 def gen_01():
     s = []
     while True:
-        i = random.randint(0, 1)
+        i = random.randint(1, 9)
         s.append(str(i))
         if random.random() < 0.01:  # generate the same char
             break
