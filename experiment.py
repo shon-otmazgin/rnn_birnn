@@ -77,6 +77,7 @@ def train(model, train_loader, epochs, device):
 
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
