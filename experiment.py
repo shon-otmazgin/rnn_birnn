@@ -102,12 +102,13 @@ def train(model, train_loader, epochs, device):
         train_loss = 0
         train_correct = 0
 
+
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
