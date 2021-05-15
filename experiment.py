@@ -77,7 +77,8 @@ def train(model, train_loader, test_loader, device):
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     losses = []
-    accuracies = []
+    train_accuracies = []
+    test_accuracies = []
     steps = []
     wall_clock = []
     train_loss = 0
@@ -99,13 +100,15 @@ def train(model, train_loader, test_loader, device):
         losses.append(loss.item() / ((step+1) * y.shape[0]))
         end = time.time()
 
+        train_acc = test(model, train_loader, device)
+        train_accuracies.append(train_acc)
         test_acc = test(model, test_loader, device)
-        accuracies.append(test_acc)
+        test_accuracies.append(test_acc)
 
         steps.append((step+1) * y.shape[0])
         wall_clock.append(end-start)
 
-    return losses, accuracies, steps, wall_clock
+    return losses, train_accuracies, test_accuracies, steps, wall_clock
 
 
 def test(model, loader, device):
@@ -141,9 +144,10 @@ if __name__ == '__main__':
 
     model = LangRNN()
     model.to(device)
-    losses, accuracies, steps, wall_clock = train(model, train_loader, test_loader, device)
+    losses, train_accuracies, test_accuracies, steps, wall_clock = train(model, train_loader, test_loader, device)
 
     print(steps)
-    print(accuracies)
     print(losses)
+    print(train_accuracies)
+    print(test_accuracies)
     print(wall_clock)
