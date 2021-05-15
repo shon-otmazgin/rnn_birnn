@@ -16,7 +16,6 @@ def pad_collate(batch):
 
   return xx_pad, yy_pad, x_lens, y_lens
 
-
 class LangDataset(Dataset):
     def __init__(self, pos_path, neg_path):
         self.c2i = {'a': 0, 'b': 1, 'c': 2, 'd': 3, '1': 4, '2': 5, '3': 6, '4': 7, '5': 8, '6': 9, '7': 10, '8': 11, '9': 12, '[PAD]': 13}
@@ -71,9 +70,11 @@ class LangRNN(nn.Module):
         return self.mlp(h)                      #[batch, 1]
 
 
-def train(model, train_loader, eval_loader, epochs, device):
+def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    train_loss = 0
+    train_correct = 0
 
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for e in train_iterator:
@@ -81,7 +82,6 @@ def train(model, train_loader, eval_loader, epochs, device):
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
             model.zero_grad()
-
             input_ids, y = xx_pad.to(device), yy_pad.to(device)
 
             logits = model(input_ids, x_lens)   #[batch, 1]
@@ -90,40 +90,19 @@ def train(model, train_loader, eval_loader, epochs, device):
             loss.backward()
             optimizer.step()
 
-        train_loss, train_correct = eval(model, train_loader, device)
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
-
-        eval_loss, eval_correct = eval(model, eval_loader, device)
-        print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Eval ACC:  {eval_correct:.8f}')
-
-
-def eval(model, eval_loader, device):
-    criterion = nn.BCEWithLogitsLoss()
-
-    eval_loss = 0
-    eval_correct = 0
-
-    model.eval()
-    with torch.no_grad():
-        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(eval_loader):
-            input_ids, y = xx_pad.to(device), yy_pad.to(device)
-
-            logits = model(input_ids, x_lens)   #[batch, 1]
-            loss = criterion(logits, y)
+            train_loss += loss.item()
             preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            # print(y.sum())
-            # print(preds.sum())
-            # print()
+            train_correct += preds.eq(y).sum().item()
+            # print(y)
+            # print(preds)
 
-            eval_loss += loss.item()
-            eval_correct += preds.eq(y).sum().item()
+        train_loss /= len(train_loader.dataset)
+        train_correct /= len(train_loader.dataset)
 
-        eval_loss /= len(eval_loader.dataset)
-        eval_correct /= len(eval_loader.dataset)
-
-    return eval_loss, eval_correct
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.3f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.3f}')
+        train_loss = 0
+        train_correct = 0
 
 
 if __name__ == '__main__':
@@ -131,11 +110,8 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    test_dataset = LangDataset('test_pos', 'test_neg')
-
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
-    train(model, train_loader, test_loader, 20, device)
+    train(model, train_loader, 20, device)
