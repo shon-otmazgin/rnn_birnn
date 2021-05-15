@@ -109,7 +109,7 @@ def test(model, loader, device):
 
     model.eval()
     with torch.no_grad():
-        for xx_pad, yy_pad, x_lens, y_lens in enumerate(loader):
+        for xx_pad, yy_pad, x_lens, y_lens in loader:
             input_ids, y = xx_pad.to(device), yy_pad.to(device)
 
             logits = model(input_ids, x_lens)  # [batch, 1]
