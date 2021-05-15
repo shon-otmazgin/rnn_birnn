@@ -94,9 +94,9 @@ def train(model, train_loader, eval_loader, epochs, device):
         print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
         print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
 
-        eval_loss, eval_correct = eval(model, eval_loader, device)
-        print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Eval ACC:  {eval_correct:.8f}')
+        # eval_loss, eval_correct = eval(model, eval_loader, device)
+        # print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
+        # print(f'Epoch: [{(e + 1)}/{epochs}] Eval ACC:  {eval_correct:.8f}')
 
 
 def eval(model, eval_loader, device):
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_dataset = LangDataset('train_pos', 'train_neg')
+    train_dataset = LangDataset('pos_examples', 'neg_examples')
     test_dataset = LangDataset('test_pos', 'test_neg')
 
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
