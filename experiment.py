@@ -79,9 +79,11 @@ def train(model, train_loader, test_loader, device):
     losses = []
     accuracies = []
     steps = []
+    wall_clock = []
     train_loss = 0
 
     epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
+    start = time.time()
     for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
         model.train()
         model.zero_grad()
@@ -95,13 +97,15 @@ def train(model, train_loader, test_loader, device):
 
         train_loss += loss.item()
         losses.append(loss.item() / ((step+1) * y.shape[0]))
+        end = time.time()
 
         test_acc = test(model, test_loader, device)
         accuracies.append(test_acc)
 
         steps.append((step+1) * y.shape[0])
+        wall_clock.append(end-start)
 
-    return losses, accuracies, steps
+    return losses, accuracies, steps, wall_clock
 
 
 def test(model, loader, device):
@@ -115,11 +119,6 @@ def test(model, loader, device):
             logits = model(input_ids, x_lens)  # [batch, 1]
             preds = logits.sigmoid().round()   # get the index of the max log-probability/logits
             correct += preds.eq(y).sum().item()
-            # print(y.squeeze())
-            # print(logits.squeeze())
-            # print(logits.sigmoid().squeeze())
-            # print(logits.sigmoid().round().squeeze())
-            # print()
 
     return correct / len(loader.dataset)
 
@@ -128,14 +127,11 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    # accuracies, epochs, sizes, clock_time = [], [], [], []
-    # for l in range(50, 550, 50):
-    # start = time.time()
-    l = 500
-    print(f'Train Dataset size: {l*2}')
-    print(f'Test Dataset size: {l//10*2}')
-    os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
-    os.system(f'python gen_examples.py --n {l//10} --suffix_file_name test')
+    size = 500
+    print(f'Train Dataset size: {size * 2}')
+    print(f'Test Dataset size: {size // 10 * 2}')
+    os.system(f'python gen_examples.py --n {size} --suffix_file_name train')
+    os.system(f'python gen_examples.py --n {size // 10} --suffix_file_name test')
 
     train_dataset = LangDataset('pos_train', 'neg_train')
     test_dataset = LangDataset('pos_test', 'neg_test')
@@ -145,19 +141,9 @@ if __name__ == '__main__':
 
     model = LangRNN()
     model.to(device)
-    losses, accuracies, steps = train(model, train_loader, test_loader, device)
+    losses, accuracies, steps, wall_clock = train(model, train_loader, test_loader, device)
+
     print(steps)
     print(accuracies)
     print(losses)
-
-    # accuracies.append(acc)
-    # epochs.append(e)
-    # sizes.append(l*2)
-    #
-    # end = time.time()
-    # clock_time.append(end-start)
-    #
-    # print(sizes)
-    # print(accuracies)
-    # print(epochs)
-    # print(clock_time)
+    print(wall_clock)
