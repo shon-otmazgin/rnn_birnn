@@ -95,10 +95,10 @@ def train(model, train_loader, test_loader, device):
 
         loss.backward()
         optimizer.step()
+        end = time.time()
 
         train_loss += loss.item()
         losses.append(loss.item() / ((step+1) * y.shape[0]))
-        end = time.time()
 
         train_acc = test(model, train_loader, device)
         train_accuracies.append(train_acc)
