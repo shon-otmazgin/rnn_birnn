@@ -72,42 +72,37 @@ class LangRNN(nn.Module):
         return self.mlp(h)                      #[batch, 1]
 
 
-def train(model, train_loader, test_loader, epochs, device):
+def train(model, train_loader, test_loader, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    best_acc = 0
-    best_e = 0
-    train_iterator = trange(0, epochs, desc="Epoch", position=0)
-    for e in train_iterator:
-        train_loss = 0
-        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
-            model.train()
-            model.zero_grad()
-            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+    losses = []
+    accuracies = []
+    steps = []
+    train_loss = 0
 
-            logits = model(input_ids, x_lens)   #[batch, 1]
-            loss = criterion(logits, y)
+    epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
+    for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
+        model.train()
+        model.zero_grad()
+        input_ids, y = xx_pad.to(device), yy_pad.to(device)
 
-            loss.backward()
-            optimizer.step()
+        logits = model(input_ids, x_lens)   #[batch, 1]
+        loss = criterion(logits, y)
 
-            train_loss += loss.item()
+        loss.backward()
+        optimizer.step()
 
-        train_loss /= len(train_loader.dataset)
-        train_acc = test(model, train_loader, device)
+        train_loss += loss.item()
+        losses.append(loss.item() / ((step+1) * y.shape[0]))
+
         test_acc = test(model, test_loader, device)
-        if test_acc > best_acc:
-            best_acc = test_acc
-            best_e = e
+        accuracies.append(test_acc)
 
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_acc:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Test ACC:  {test_acc:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Best Test ACC:  {best_acc:.8f}')
-        print()
-    return best_acc, best_e
+        steps.append((step+1) * y.shape[0])
+
+    return losses, accuracies, steps
+
 
 def test(model, loader, device):
     correct = 0
@@ -133,33 +128,36 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    accuracies, epochs, sizes, clock_time = [], [], [], []
-    for l in range(50, 550, 50):
-        start = time.time()
-        print(f'Dataset size: {l*2}')
-        os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
-        os.system(f'python gen_examples.py --n {l//10} --suffix_file_name test')
+    # accuracies, epochs, sizes, clock_time = [], [], [], []
+    # for l in range(50, 550, 50):
+    # start = time.time()
+    l = 500
+    print(f'Train Dataset size: {l*2}')
+    print(f'Test Dataset size: {l//10*2}')
+    os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
+    os.system(f'python gen_examples.py --n {l//10} --suffix_file_name test')
 
-        train_dataset = LangDataset('pos_train', 'neg_train')
-        test_dataset = LangDataset('pos_test', 'neg_test')
+    train_dataset = LangDataset('pos_train', 'neg_train')
+    test_dataset = LangDataset('pos_test', 'neg_test')
 
-        train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
 
-        model = LangRNN()
-        model.to(device)
-        acc, e = train(model, train_loader, test_loader, 10, device)
-        print(f'Acc: {acc}, Epochs: {e}')
-        print()
-
-        accuracies.append(acc)
-        epochs.append(e)
-        sizes.append(l*2)
-
-        end = time.time()
-        clock_time.append(end-start)
-
-    print(sizes)
+    model = LangRNN()
+    model.to(device)
+    losses, accuracies, steps = train(model, train_loader, test_loader, device)
+    print(steps)
     print(accuracies)
-    print(epochs)
-    print(clock_time)
+    print(losses)
+
+    # accuracies.append(acc)
+    # epochs.append(e)
+    # sizes.append(l*2)
+    #
+    # end = time.time()
+    # clock_time.append(end-start)
+    #
+    # print(sizes)
+    # print(accuracies)
+    # print(epochs)
+    # print(clock_time)

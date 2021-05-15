@@ -16,6 +16,7 @@ def gen_examples(reg, n, file):
                         break
             f.write(''.join(s) + '\n')
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Language generator')
     parser.add_argument("--n", type=int, default=0, help='Number of positive/negative examples (default: 0)')
