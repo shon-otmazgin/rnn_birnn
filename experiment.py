@@ -72,7 +72,7 @@ class LangRNN(nn.Module):
 
 def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     train_loss = 0
     train_correct = 0
 
@@ -81,6 +81,7 @@ def train(model, train_loader, epochs, device):
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
+            model.zero_grad()
             input_ids, y = xx_pad.to(device), yy_pad.to(device)
             input_lens = x_lens
 
