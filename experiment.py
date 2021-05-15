@@ -97,9 +97,10 @@ def train(model, train_loader, epochs, device):
         train_loss /= len(train_loader.dataset)
         train_correct /= len(train_loader.dataset)
 
-        print(f'Epoch: {e + 1} [{(e + 1)}/{epochs}] Train Loss: {train_loss:.3f}')
-        print(f'Epoch: {e + 1} [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.3f}')
-
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.3f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.3f}')
+        train_loss = 0
+        train_correct = 0
 
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
