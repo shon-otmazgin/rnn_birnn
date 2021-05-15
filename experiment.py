@@ -74,6 +74,7 @@ def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     train_loss = 0
+    train_correct = 0
 
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for e in train_iterator:
@@ -90,16 +91,17 @@ def train(model, train_loader, epochs, device):
             optimizer.step()
 
             train_loss += loss.item()
-            # preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            # train_correct += preds.eq(y).sum().item()
+            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
+            train_correct += preds.eq(y).sum().item()
             # print(y)
             # print(preds)
 
         train_loss /= len(train_loader.dataset)
-        # train_correct /= len(train_loader.dataset)
+        train_correct /= len(train_loader.dataset)
 
         print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
         acc = test(model, train_loader, device)
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train correct:  {train_correct:.8f}')
         print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {acc:.8f}')
         train_loss = 0
 
