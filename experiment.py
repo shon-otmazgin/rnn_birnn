@@ -29,7 +29,7 @@ class LangDataset(Dataset):
             for ex in f.readlines():
                 self.examples.append((ex.strip(), 0))
         self.examples = [self._tensorize_example(e) for e in self.examples]
-        # random.shuffle(self.examples)
+        random.shuffle(self.examples)
 
     def __len__(self):
         return len(self.examples)
