@@ -125,16 +125,18 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    for l in range(100, 1100, 100):
-        os.system(f'python gen_examples.py --pos {l} --pos_file train_pos --neg {l} --neg_file train_neg')
-        os.system(f'python gen_examples.py --pos {l//10} --pos_file test_pos --neg {l//10} --neg_file test_neg')
-    # train_dataset = LangDataset('train_pos', 'train_neg')
-    # test_dataset = LangDataset('test_pos', 'test_neg')
-    #
-    # train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
-    #
-    # model = LangRNN()
-    # model.to(device)
-    # epochs = 10
-    # train(model, train_loader, test_loader, epochs, device)
+    for l in range(50, 550, 50):
+        print(f'Dataset size: {l*2}')
+        os.system(f'python gen_examples.py --n {l} --suffix_file_name train')
+        os.system(f'python gen_examples.py --n {l//10} --suffix_file_name test')
+
+        train_dataset = LangDataset('pos_train', 'neg_train')
+        test_dataset = LangDataset('pos_test', 'neg_test')
+
+        train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+        test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
+
+        model = LangRNN()
+        model.to(device)
+        epochs = 10
+        train(model, train_loader, test_loader, epochs, device)
