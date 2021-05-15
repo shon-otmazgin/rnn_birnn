@@ -74,7 +74,7 @@ class LangRNN(nn.Module):
 
 def train(model, train_loader, test_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     best_acc = 0
     best_e = 0
