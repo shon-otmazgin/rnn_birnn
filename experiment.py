@@ -90,9 +90,9 @@ def train(model, train_loader, eval_loader, epochs, device):
             loss.backward()
             optimizer.step()
 
-        train_loss, train_correct = eval(model, train_loader, device)
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
-        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
+            train_loss, train_correct = eval(model, train_loader, device)
+            print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
+            print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
 
         eval_loss, eval_correct = eval(model, eval_loader, device)
         print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
@@ -113,9 +113,9 @@ def eval(model, eval_loader, device):
             logits = model(input_ids, x_lens)   #[batch, 1]
             loss = criterion(logits, y)
             preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            print(y.sum())
-            print(preds.sum())
-            print()
+            # print(y.sum())
+            # print(preds.sum())
+            # print()
 
             eval_loss += loss.item()
             eval_correct += preds.eq(y).sum().item()
@@ -131,9 +131,10 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=pad_collate)
     test_dataset = LangDataset('test_pos', 'test_neg')
-    test_loader = DataLoader(train_dataset, batch_size=8, shuffle=False, collate_fn=pad_collate)
+
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
