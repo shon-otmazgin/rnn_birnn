@@ -16,6 +16,7 @@ def pad_collate(batch):
 
   return xx_pad, yy_pad, x_lens, y_lens
 
+
 class LangDataset(Dataset):
     def __init__(self, pos_path, neg_path):
         self.c2i = {'a': 0, 'b': 1, 'c': 2, 'd': 3, '1': 4, '2': 5, '3': 6, '4': 7, '5': 8, '6': 9, '7': 10, '8': 11, '9': 12, '[PAD]': 13}
@@ -28,7 +29,7 @@ class LangDataset(Dataset):
             for ex in f.readlines():
                 self.examples.append((ex.strip(), 0))
         self.examples = [self._tensorize_example(e) for e in self.examples]
-        random.shuffle(self.examples)
+        # random.shuffle(self.examples)
 
     def __len__(self):
         return len(self.examples)
@@ -70,7 +71,7 @@ class LangRNN(nn.Module):
         return self.mlp(h)                      #[batch, 1]
 
 
-def train(model, train_loader, epochs, device):
+def train(model, train_loader, eval_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
@@ -93,9 +94,9 @@ def train(model, train_loader, epochs, device):
         print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
         print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
 
-        # eval_loss, eval_correct = eval(model, eval_loader, device)
-        # print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
-        # print(f'Epoch: [{(e + 1)}/{epochs}] Eval ACC:  {eval_correct:.8f}')
+        eval_loss, eval_correct = eval(model, eval_loader, device)
+        print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Eval ACC:  {eval_correct:.8f}')
 
 
 def eval(model, eval_loader, device):
@@ -125,14 +126,15 @@ def eval(model, eval_loader, device):
     return eval_loss, eval_correct
 
 
-
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    test_dataset = LangDataset('test_pos', 'test_neg')
+    test_loader = DataLoader(train_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
-    train(model, train_loader, 20, device)
+    train(model, train_loader, test_loader, 20, device)
