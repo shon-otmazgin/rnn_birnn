@@ -146,8 +146,8 @@ if __name__ == '__main__':
     model.to(device)
     losses, train_accuracies, test_accuracies, steps, wall_clock = train(model, train_loader, test_loader, device)
 
-    print(steps)
-    print(losses)
-    print(train_accuracies)
-    print(test_accuracies)
-    print(wall_clock)
+    print(f'steps = {steps}')
+    print(f'losses = {losses}')
+    print(f'train_accuracies = {train_accuracies}')
+    print(f'test_accuracies = {test_accuracies}')
+    print(f'wall_clock = {wall_clock}')
