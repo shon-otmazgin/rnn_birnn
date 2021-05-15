@@ -100,8 +100,8 @@ def train(model, train_loader, test_loader, device):
         train_loss += loss.item()
         losses.append(loss.item() / ((step+1) * y.shape[0]))
 
-        # train_acc = test(model, train_loader, device)
-        # train_accuracies.append(train_acc)
+        train_acc = test(model, train_loader, device)
+        train_accuracies.append(train_acc)
         test_acc = test(model, test_loader, device)
         test_accuracies.append(test_acc)
 
