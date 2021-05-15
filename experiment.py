@@ -73,9 +73,11 @@ class LangRNN(nn.Module):
 def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+    train_loss = 0
+    train_correct = 0
 
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
-    for epoch in train_iterator:
+    for e in train_iterator:
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
         for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
@@ -87,6 +89,16 @@ def train(model, train_loader, epochs, device):
 
             loss.backward()
             optimizer.step()
+
+            train_loss += loss.item()
+            pred = logits.max(dim=1, keepdim=True)[1]  # get the index of the max log-probability/logits
+            train_correct += pred.eq(y.view_as(pred)).cpu().sum().item()
+
+        train_loss /= len(train_loader.dataset)
+        train_correct /= len(train_loader.dataset)
+
+        print(f'Epoch: {e + 1} [{(e + 1)}/{epochs}] Train Loss: {train_loss:.3f}')
+        print(f'Epoch: {e + 1} [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.3f}')
 
 
 if __name__ == '__main__':
