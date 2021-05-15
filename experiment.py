@@ -146,8 +146,7 @@ if __name__ == '__main__':
 
         model = LangRNN()
         model.to(device)
-        epochs = 10
-        acc, e = train(model, train_loader, test_loader, epochs, device)
+        acc, e = train(model, train_loader, test_loader, 10, device)
         print(f'Acc: {acc}, Epochs: {e}')
         print()
 
