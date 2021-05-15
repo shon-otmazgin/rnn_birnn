@@ -1,4 +1,5 @@
 import random
+import os
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
@@ -124,13 +125,16 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_dataset = LangDataset('train_pos', 'train_neg')
-    test_dataset = LangDataset('test_pos', 'test_neg')
-
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
-
-    model = LangRNN()
-    model.to(device)
-    epochs = 10
-    train(model, train_loader, test_loader, epochs, device)
+    for l in range(100, 1100, 100):
+        os.system(f'python gen_examples.py --pos {l} --pos_file train_pos --neg {l} --neg_file train_neg')
+        os.system(f'python gen_examples.py --pos {l//10} --pos_file test_pos --neg {l//10} --neg_file test_neg')
+    # train_dataset = LangDataset('train_pos', 'train_neg')
+    # test_dataset = LangDataset('test_pos', 'test_neg')
+    #
+    # train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, collate_fn=pad_collate)
+    #
+    # model = LangRNN()
+    # model.to(device)
+    # epochs = 10
+    # train(model, train_loader, test_loader, epochs, device)
