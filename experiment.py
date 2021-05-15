@@ -90,9 +90,9 @@ def train(model, train_loader, eval_loader, epochs, device):
             loss.backward()
             optimizer.step()
 
-            train_loss, train_correct = eval(model, train_loader, device)
-            print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
-            print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
+        train_loss, train_correct = eval(model, train_loader, device)
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
+        print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_correct:.8f}')
 
         eval_loss, eval_correct = eval(model, eval_loader, device)
         print(f'Epoch: [{(e + 1)}/{epochs}] Eval Loss: {eval_loss:.8f}')
