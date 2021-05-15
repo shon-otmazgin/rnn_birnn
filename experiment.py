@@ -107,7 +107,7 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
