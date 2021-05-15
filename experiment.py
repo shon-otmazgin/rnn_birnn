@@ -75,6 +75,8 @@ def train(model, train_loader, test_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
+    best_acc = 0
+    best_e = 0
     train_iterator = trange(0, epochs, desc="Epoch", position=0)
     for e in train_iterator:
         train_loss = 0
@@ -95,11 +97,16 @@ def train(model, train_loader, test_loader, epochs, device):
         train_loss /= len(train_loader.dataset)
         train_acc = test(model, train_loader, device)
         test_acc = test(model, test_loader, device)
+        if test_acc > best_acc:
+            best_acc = test_acc
+            best_e = e
 
         print(f'Epoch: [{(e + 1)}/{epochs}] Train Loss: {train_loss:.8f}')
         print(f'Epoch: [{(e + 1)}/{epochs}] Train ACC:  {train_acc:.8f}')
         print(f'Epoch: [{(e + 1)}/{epochs}] Test ACC:  {test_acc:.8f}')
-
+        print(f'Epoch: [{(e + 1)}/{epochs}] Best Test ACC:  {best_acc:.8f}')
+        print()
+    return best_acc, best_e
 
 def test(model, loader, device):
     correct = 0
@@ -139,4 +146,5 @@ if __name__ == '__main__':
         model = LangRNN()
         model.to(device)
         epochs = 10
-        train(model, train_loader, test_loader, epochs, device)
+        acc, e = train(model, train_loader, test_loader, epochs, device)
+        print(f'Acc: {acc}, Epochs: {e}')
