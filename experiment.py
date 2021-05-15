@@ -72,7 +72,7 @@ class LangRNN(nn.Module):
 
 def train(model, train_loader, epochs, device):
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     train_loss = 0
     train_correct = 0
 
@@ -92,7 +92,7 @@ def train(model, train_loader, epochs, device):
 
             train_loss += loss.item()
             pred = logits.max(dim=1, keepdim=True)[1]  # get the index of the max log-probability/logits
-            train_correct += pred.eq(y.view_as(pred)).cpu().sum().item()
+            train_correct += pred.eq(y.view_as(y)).cpu().sum().item()
 
         train_loss /= len(train_loader.dataset)
         train_correct /= len(train_loader.dataset)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
