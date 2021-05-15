@@ -148,3 +148,4 @@ if __name__ == '__main__':
         epochs = 10
         acc, e = train(model, train_loader, test_loader, epochs, device)
         print(f'Acc: {acc}, Epochs: {e}')
+        print()
