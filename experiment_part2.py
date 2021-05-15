@@ -13,7 +13,7 @@ def pad_collate(batch):
   x_lens = [len(x) for x in xx]
   y_lens = [len(y) for y in yy]
 
-  xx_pad = pad_sequence(xx, batch_first=True, padding_value=2
+  xx_pad = pad_sequence(xx, batch_first=True, padding_value=2)
   yy_pad = pad_sequence(yy, batch_first=True, padding_value=2)
 
   return xx_pad, yy_pad, x_lens, y_lens
@@ -136,8 +136,8 @@ if __name__ == '__main__':
     size = 500
     print(f'Train Dataset size: {size * 2}')
     print(f'Test Dataset size: {size // 10 * 2}')
-    os.system(f'python gen_examples.py --n {size} --suffix_file_name train')
-    os.system(f'python gen_examples.py --n {size // 10} --suffix_file_name test')
+    os.system(f'python gen_part2.py --n {size} --suffix_file_name train')
+    os.system(f'python gen_part2.py --n {size // 10} --suffix_file_name test')
 
     train_dataset = LangDataset('pos_train', 'neg_train')
     test_dataset = LangDataset('pos_test', 'neg_test')

@@ -2,22 +2,36 @@ import argparse
 import random
 
 
-def gen_01(n, file, palindrome):
+def isPalindrome(s):
+    ''' check if a number is a Palindrome '''
+    s = str(s)
+    return s == s[::-1]
+
+
+def gen_01():
+    s = []
+    while True:
+        i = random.randint(0, 1)
+        s.append(str(i))
+        if random.random() < 0.01:  # generate the same char
+            break
+    return ''.join(s)
+
+
+def gen_palindrome_examples(n, file, palindrome):
     if n <= 0:
         return
     with open(file, 'w') as f:
         for i in range(n):
-            s = []
-            stop = random.random()          # generate random prob to stop
-            while True:
-                i = random.randint(0, 1)
-                s.append('a' if i == 0 else 'b')
-                if random.random() > stop:   # generate the same char
-                    break
+            s = gen_01()
+            while isPalindrome(s):
+                s = gen_01()
             if palindrome:
-                f.write(''.join(s) + ''.join(s[::-1]) + '\n')
+                mid = (len(s) // 2) + 1
+                s = s[:mid]
+                f.write(s + s[::-1] + '\n')
             else:
-                f.write(''.join(s) + '\n')
+                f.write(s + '\n')
 
 
 if __name__ == '__main__':
@@ -26,5 +40,5 @@ if __name__ == '__main__':
     parser.add_argument("--suffix_file_name", type=str, default='_examples', help='pos_suffix / neg_suffix')
     args = parser.parse_args()
 
-    gen_01(args.n, 'pos' + '_' + args.suffix_file_name, palindrome=True)
-    gen_01(args.n, 'neg' + '_' + args.suffix_file_name, palindrome=False)
+    gen_palindrome_examples(args.n, 'pos' + '_' + args.suffix_file_name, palindrome=True)
+    gen_palindrome_examples(args.n, 'neg' + '_' + args.suffix_file_name, palindrome=False)
