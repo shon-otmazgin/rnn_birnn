@@ -113,8 +113,9 @@ def eval(model, eval_loader, device):
             logits = model(input_ids, x_lens)   #[batch, 1]
             loss = criterion(logits, y)
             preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
-            print(y)
-            print(preds)
+            print(y.sum())
+            print(preds.sum())
+            print()
 
             eval_loss += loss.item()
             eval_correct += preds.eq(y).sum().item()
