@@ -91,10 +91,10 @@ def train(model, train_loader, epochs, device):
             optimizer.step()
 
             train_loss += loss.item()
-            preds = logits.max(dim=1, keepdim=True)[1]  # get the index of the max log-probability/logits
+            preds = logits.sigmoid().round()        # get the index of the max log-probability/logits
             train_correct += preds.eq(y).sum().item()
-            print(y)
-            print(preds)
+            # print(y)
+            # print(preds)
 
         train_loss /= len(train_loader.dataset)
         train_correct /= len(train_loader.dataset)
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     print(f'Running device: {device}')
 
     train_dataset = LangDataset('train_pos', 'train_neg')
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
     model.to(device)
