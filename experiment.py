@@ -127,6 +127,9 @@ def test(model, loader, device):
 
 
 if __name__ == '__main__':
+    random.seed(42)
+    torch.manual_seed(42)
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
