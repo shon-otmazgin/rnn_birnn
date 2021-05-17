@@ -2,17 +2,22 @@ import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_sequence, pad_packed_sequence
 from torch.utils.data import Dataset, DataLoader
+from tqdm import trange
+from tqdm import tqdm
+PAD = '<PAD>'
+UNK = '<UNK>'
 
 
-def pad_collate(batch):
+def pad_collate(batch, x_pad, y_pad):
   (xx, yy) = zip(*batch)
   x_lens = [len(x) for x in xx]
   y_lens = [len(y) for y in yy]
 
-  xx_pad = pad_sequence(xx, batch_first=True, padding_value=0)
-  yy_pad = pad_sequence(yy, batch_first=True, padding_value=0)
+  xx_pad = pad_sequence(xx, batch_first=True, padding_value=x_pad)
+  yy_pad = pad_sequence(yy, batch_first=True, padding_value=y_pad)
 
   return xx_pad, yy_pad, x_lens, y_lens
+
 
 def read_data(filename, with_labels):
     X = []
@@ -60,15 +65,14 @@ class TagDataset(Dataset):
             self.X, self.unique_x_toks = data
 
         if tokens2ids is None:
-            self.tokens2ids = {t: (i+1) for i, t in enumerate(self.unique_x_toks)}
-            self.tokens2ids['<PAD>'] = 0
-            self.tokens2ids['<UNK>'] = len(self.tokens2ids)
+            self.tokens2ids = {t: i for i, t in enumerate(self.unique_x_toks)}
+            self.tokens2ids[UNK] = len(self.tokens2ids)
+            self.tokens2ids[PAD] = len(self.tokens2ids)
         else:
             self.tokens2ids = tokens2ids
 
         if tags2ids is None and return_y:
-            self.tags2ids = {t: (i+1) for i, t in enumerate(self.unique_y_toks)}
-            self.tags2ids['<PAD>'] = 0
+            self.tags2ids = {t: i for i, t in enumerate(self.unique_y_toks)}
         else:
             self.tags2ids = tags2ids
 
@@ -88,23 +92,23 @@ class TagDataset(Dataset):
         return self.X[item]
 
     def _tensorize_x(self, x):
-        idxs = [self.tokens2ids[t] if t in self.tokens2ids else self.tokens2ids['<UNK>'] for t in x]
+        idxs = [self.tokens2ids[t] if t in self.tokens2ids else self.tokens2ids[UNK] for t in x]
         return torch.tensor(idxs, dtype=torch.long)
 
     def _tensorize_y(self, y):
         idxs = [self.tags2ids[t] for t in y]
-        return torch.tensor(idxs, dtype=torch.long)
+        return torch.tensor(idxs)
 
 
 class BiLSTMTagger(nn.Module):
-    def __init__(self, vocab_size, tagset_size):
+    def __init__(self, vocab_size, tagset_size, padding_idx):
         super(BiLSTMTagger, self).__init__()
         self.vocab_size = vocab_size
         self.tagset_size = tagset_size
         self.emb_size = 300
         self.s_dim = 768
 
-        self.word_emb = nn.Embedding(self.vocab_size, self.emb_size)
+        self.word_emb = nn.Embedding(self.vocab_size, self.emb_size, padding_idx=padding_idx)
         self.bilstm1 = nn.LSTM(bidirectional=True, input_size=self.emb_size, hidden_size=self.s_dim, num_layers=1, batch_first=True)
         self.bilstm2 = nn.LSTM(bidirectional=True, input_size=2*self.s_dim, hidden_size=self.s_dim, num_layers=1, batch_first=True)
 
@@ -122,24 +126,71 @@ class BiLSTMTagger(nn.Module):
         return output
 
 
-train_dataset = TagDataset('data/pos/train', return_y=True)
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=pad_collate)
+def train(model, train_loader, dev_loader, device, y_pad):
+    criterion = nn.CrossEntropyLoss(ignore_index=y_pad)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-model = BiLSTMTagger(vocab_size=train_dataset.vocab_size, tagset_size=train_dataset.tagset_size)
+    train_loss = 0
+    seen_sents = 0
 
-for xx_pad, yy_pad, x_lens, y_lens in train_loader:
-    out = model(xx_pad, x_lens)
-    break
+    train_iterator = trange(0, 5, desc="Epoch", position=0)
+    for epoch in train_iterator:
+        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
+        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
+            model.train()
+            model.zero_grad()
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
 
-#
-# dev_dataset = TagDataset('data/pos/dev', return_y=True,
-#                          tokens2ids=train_dataset.tokens2ids,
-#                          tags2ids=train_dataset.tags2ids)
-# dev_ex = dev_dataset[0]
-# print(dev_ex)
-#
-# test_dataset = TagDataset('data/pos/test', return_y=False,
-#                           tokens2ids=train_dataset.tokens2ids,
-#                           tags2ids=train_dataset.tags2ids)
-# test_ex = test_dataset[0]
-# print(test_ex)
+            logits = model(input_ids, x_lens)  # [batch, seq_len, tagset]
+            logits = logits.permute(0, 2, 1)  # [batch, tagset, seq_len]
+            loss = criterion(logits, y)
+
+            loss.backward()
+            optimizer.step()
+
+            train_loss += loss.item()
+            seen_sents += input_ids.shape[0]
+
+            if seen_sents % 500 == 0:
+                acc = predict(model, dev_loader, device, y_pad)
+                print(f'Train loss: {(loss / 500):.8f}')
+                print(f'Dev acc:{acc:.8f}')
+                train_loss = 0
+    return
+
+def predict(model, loader, device, y_pad):
+    correct = 0
+    total = 0
+
+    model.eval()
+    with torch.no_grad():
+        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(loader):
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+
+            logits = model(input_ids, x_lens)  # [batch, seq_len, tagset]
+            probs = logits.softmax(dim=2).argmax(dim=2)
+            mask = (y != y_pad)
+
+            correct += probs[mask].eq(y[mask]).sum()
+            total += sum(y_lens)
+    return correct / total
+
+if __name__ == '__main__':
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    print(f'Running device: {device}')
+
+    train_dataset = TagDataset('data/pos/train', return_y=True)
+    x_pad, y_pad = train_dataset.tokens2ids[PAD], len(train_dataset.tags2ids)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+
+    dev_dataset = TagDataset('data/pos/dev', return_y=True,
+                             tokens2ids=train_dataset.tokens2ids,
+                             tags2ids=train_dataset.tags2ids)
+    dev_loader = DataLoader(dev_dataset, batch_size=64, shuffle=False, collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+
+    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+                         tagset_size=train_dataset.tagset_size,
+                         padding_idx=x_pad)
+    model.to(device)
+
+    train(model, train_loader, dev_loader, device, y_pad)
