@@ -132,6 +132,7 @@ def train(model, train_loader, dev_loader, device, y_pad):
 
     train_loss = 0
     seen_sents = 0
+    best_acc = 0
 
     train_iterator = trange(0, 5, desc="Epoch", position=0)
     for epoch in train_iterator:
@@ -155,8 +156,13 @@ def train(model, train_loader, dev_loader, device, y_pad):
                 acc = predict(model, dev_loader, device, y_pad)
                 print(f'Train loss: {(loss / 500):.8f}')
                 print(f'Dev acc:{acc:.8f}')
+                if acc > best_acc:
+                    best_acc = acc
+                print(f'Best Dev acc:{best_acc:.8f}')
                 train_loss = 0
-    return
+
+    torch.save(model.state_dict(), 'bilstm.pt')
+
 
 def predict(model, loader, device, y_pad):
     correct = 0
@@ -174,6 +180,7 @@ def predict(model, loader, device, y_pad):
             correct += probs[mask].eq(y[mask]).sum()
             total += sum(y_lens)
     return correct / total
+
 
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
