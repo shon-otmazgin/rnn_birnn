@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm import tqdm
 
-from data import DatasetA, PAD
-from models import BiLSTMTaggerA
+from data import DatasetA, PAD, DatasetB
+from models import BiLSTMTaggerA, BiLSTMTaggerB
 
 
 def pad_collate(batch, x_pad, y_pad):
@@ -73,27 +73,43 @@ def predict(model, loader, device, y_pad):
 
             correct += probs[mask].eq(y[mask]).sum()
             total += sum(y_lens)
-    return correct / total
+    return correct.item() / total.item()
 
 
 if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_dataset = DatasetA('data/pos/train', return_y=True)
-    x_pad, y_pad = train_dataset.tokens2ids[PAD], len(train_dataset.tags2ids)
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True,
-                              collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+    # section A
+    # train_dataset = DatasetA('data/pos/train', return_y=True)
+    # x_pad, y_pad = train_dataset.tokens2ids[PAD], len(train_dataset.tags2ids)
+    # train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True,
+    #                           collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+    #
+    # dev_dataset = DatasetA('data/pos/dev', return_y=True,
+    #                        tokens2ids=train_dataset.tokens2ids,
+    #                        tags2ids=train_dataset.tags2ids)
+    # dev_loader = DataLoader(dev_dataset, batch_size=64, shuffle=False,
+    #                         collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+    #
+    # model = BiLSTMTaggerA(vocab_size=train_dataset.vocab_size,
+    #                       tagset_size=train_dataset.tagset_size,
+    #                       padding_idx=x_pad)
+    # model.to(device)
 
-    dev_dataset = DatasetA('data/pos/dev', return_y=True,
+    # section B
+    train_dataset = DatasetB('data/pos/train', return_y=True)
+    x_pad, y_pad = train_dataset.char2ids[PAD], len(train_dataset.tags2ids)
+    train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+
+    dev_dataset = DatasetB('data/pos/dev', return_y=True,
                            tokens2ids=train_dataset.tokens2ids,
                            tags2ids=train_dataset.tags2ids)
-    dev_loader = DataLoader(dev_dataset, batch_size=64, shuffle=False,
-                            collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
+    dev_loader = DataLoader(dev_dataset, batch_size=1, shuffle=False)
 
-    model = BiLSTMTaggerA(vocab_size=train_dataset.vocab_size,
-                         tagset_size=train_dataset.tagset_size,
-                         padding_idx=x_pad)
+    model = BiLSTMTaggerB(vocab_size=train_dataset.alphabet_size,
+                          tagset_size=train_dataset.tagset_size,
+                          padding_idx=x_pad)
     model.to(device)
 
     train(model, train_loader, dev_loader, device, y_pad)
