@@ -4,19 +4,25 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 
 class BiLSTMTagger(nn.Module):
-    def __init__(self, vocab_size, alphabet_size, tagset_size, token_padding_idx, char_padding_idx, char_level, token_level):
+    def __init__(self, vocab_size, alphabet_size, tagset_size,
+                 token_padding_idx, char_padding_idx,
+                 char_level, token_level,
+                 pretrained_vecs=None):
         super(BiLSTMTagger, self).__init__()
         self.vocab_size = vocab_size
         self.alphabet_size = alphabet_size
         self.tagset_size = tagset_size
         self.char_emb_size = 50
-        self.token_emb_size = 300
+        self.token_emb_size = 50
         self.lstm_dim = 768
         self.char_level = char_level
         self.token_level = token_level
 
         self.char_emb = nn.Embedding(self.alphabet_size, self.char_emb_size, padding_idx=char_padding_idx)
-        self.word_emb = nn.Embedding(self.vocab_size, self.token_emb_size, padding_idx=token_padding_idx)
+        if pretrained_vecs is None:
+            self.word_emb = nn.Embedding(self.vocab_size, self.token_emb_size, padding_idx=token_padding_idx)
+        else:
+            self.word_emb = nn.Embedding.from_pretrained(pretrained_vecs, freeze=False, padding_idx=token_padding_idx)
 
         self.lstm_c = nn.LSTM(bidirectional=False, input_size=self.char_emb_size,
                               hidden_size=self.token_emb_size, num_layers=1, batch_first=True)

@@ -2,24 +2,21 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 PAD = '<PAD>'
-UNK = '<UNK>'
+UNK = 'UUUNKKK'
 
 
 def load_pretrained_embeds(vec_path, vocab_path):
-    vecs = np.loadtxt(vec_path)
-    words = []
+    tokens2ids = {}
     with open(vocab_path, 'r') as f:
-        c = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
-        for row in c:
-            words.append(row[0])
+        for line in f.readlines():
+            tokens2ids[line.strip()] = len(tokens2ids)
+    tokens2ids[PAD] = len(tokens2ids)
 
-    w2v = {}
-    w2idx = {}
-    for i, w in enumerate(words):
-        w2idx[w] = i
-        w2v[i] = np.array(vecs[i])
+    tmp = np.loadtxt(vec_path, dtype=np.float32)
+    vecs = np.zeros((tmp.shape[0]+1, tmp.shape[1]), dtype=np.float32)
+    vecs[:-1, :] = tmp
 
-    return w2idx, w2v
+    return tokens2ids, torch.from_numpy(vecs)
 
 
 def read_data(filename, with_labels):
