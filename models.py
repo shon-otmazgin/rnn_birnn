@@ -27,6 +27,7 @@ class BiLSTMTagger(nn.Module):
 
         self.char_tokens_linear = nn.Linear(2*self.token_emb_size, self.token_emb_size)
         self.linear = nn.Linear(2*self.lstm_dim, tagset_size)
+        self.dropout = nn.Dropout(p=0.3)
 
     def forward(self, tokens_input_ids, char_input_ids, x_tokens_lens, x_chars_lens):
         if self.char_level:
@@ -60,6 +61,7 @@ class BiLSTMTagger(nn.Module):
         else:
             reps = tokens_reps                                  # [batch, sequence_len, token_emb]
 
+        reps = self.dropout(reps)
         x_packed = pack_padded_sequence(reps, x_tokens_lens, batch_first=True, enforce_sorted=False)
         lstm_out, _ = self.bilstm1(x_packed)  # [batch, sequence_len, out_dim]
         lstm_out, _ = self.bilstm2(lstm_out)

@@ -105,7 +105,6 @@ if __name__ == '__main__':
 
     train_dataset = TagDataset('data/pos/train', return_y=True)
     token_pad, char_pad, y_pad = train_dataset.tokens2ids[PAD], train_dataset.char2ids[PAD], len(train_dataset.tags2ids)
-
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
 
