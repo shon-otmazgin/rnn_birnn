@@ -118,6 +118,9 @@ def predict(model, loader, device, y_pad):
 
 
 if __name__ == '__main__':
+    random.seed(42)
+    torch.manual_seed(42)
+
     parser = argparse.ArgumentParser(description='LSTM Tagger')
     parser.add_argument('repr', metavar='repr', type=str, help='one of a,b,c,d')
     parser.add_argument('trainFile', type=str, help='input file to train on')
