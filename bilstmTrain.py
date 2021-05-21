@@ -6,7 +6,7 @@ from tqdm import trange
 from tqdm import tqdm
 
 from data import PAD, TagDataset
-from models import BiLSTMTaggerA, BiLSTMTagger
+from models import BiLSTMTagger
 
 
 def pad_collate_chars(xx, max_pad, pad_value):
