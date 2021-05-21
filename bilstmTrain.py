@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
@@ -42,7 +44,7 @@ def pad_collate(batch, token_pad, pre_pad, suf_pad, char_pad, y_pad):
     return xx_tokens_pad, xx_pre_pad, xx_suf_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens
 
 
-def train(model, train_loader, dev_loader, device, y_pad):
+def train(model, train_loader, dev_loader, device, y_pad, model_path):
     criterion = nn.CrossEntropyLoss(ignore_index=y_pad)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -76,14 +78,16 @@ def train(model, train_loader, dev_loader, device, y_pad):
             seen_sents += tokens_input_ids.shape[0]
 
             if seen_sents % 500 == 0:
-                acc = predict(model, dev_loader, device, y_pad)
+                if dev_loader:
+                    acc = predict(model, dev_loader, device, y_pad)
+                    print(f'Dev acc:{acc:.8f}')
+                    if acc > best_acc:
+                        best_acc = acc
+                    print(f'Best Dev acc:{best_acc:.8f}')
+                    accuracies.append(acc)
+                    steps.append(seen_sents)
+
                 print(f'Train loss: {(loss / 500):.8f}')
-                print(f'Dev acc:{acc:.8f}')
-                if acc > best_acc:
-                    best_acc = acc
-                print(f'Best Dev acc:{best_acc:.8f}')
-                accuracies.append(acc)
-                steps.append(seen_sents)
                 train_loss = 0
 
     return best_acc, accuracies, steps
@@ -113,18 +117,36 @@ def predict(model, loader, device, y_pad):
 
 
 if __name__ == '__main__':
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    parser = argparse.ArgumentParser(description='LSTM Tagger')
+    parser.add_argument('repr', metavar='repr', type=str, help='one of a,b,c,d')
+    parser.add_argument('trainFile', type=str, help='input file to train on')
+    parser.add_argument('modelFile', type=str, help='file to save the model')
+    parser.add_argument("--devFile", dest='dev_path', type=str, help='dev file to calc acc during train')
+    parser.add_argument("--vecFile", dest='vec_path', type=str, help='file to pretrained vectors')
+    parser.add_argument("--vocabFile", dest='vocab_path', type=str, help='file to the vocab of pretrained vectors')
+    args = parser.parse_args()
+
+    method = args.repr
+    train_path = args.trainFile
+    dev_path = args.dev_path
+    model_path = args.modelFile
+    vec_path = args.vec_path
+    vocab_path = args.vocab_path
+
+    print(args)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_path = 'data/pos/train'
-    dev_path = 'data/pos/dev'
-    vec_path = 'data/wordVectors.txt'
-    vocab_path = 'data/vocab.txt'
-
-
-
-
-    tokens2ids, vecs = load_pretrained_embeds(vec_path, vocab_path)
+    tokens2ids, pretrained_vecs = None, None
+    if method == 'a':
+        token_level, pre_suf_level, char_level = True, False, False
+    elif method == 'b':
+        token_level, pre_suf_level, char_level = False, False, True
+    elif method == 'c':
+        token_level, pre_suf_level, char_level = True, True, False
+        tokens2ids, pretrained_vecs = load_pretrained_embeds(vec_path, vocab_path)
+    elif method == 'd':
+        token_level, pre_suf_level, char_level = True, True, False
 
     train_dataset = TagDataset(train_path, return_y=True, tokens2ids=tokens2ids)
     token_pad = train_dataset.tokens2ids[PAD]
@@ -135,14 +157,17 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
-    dev_dataset = TagDataset(dev_path, return_y=True,
-                             tokens2ids=train_dataset.tokens2ids,
-                             char2ids=train_dataset.char2ids,
-                             pre2ids=train_dataset.pre2ids,
-                             suf2ids=train_dataset.suf2ids,
-                             tags2ids=train_dataset.tags2ids)
-    dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
-                            collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
+    if dev_path:
+        dev_dataset = TagDataset(dev_path, return_y=True,
+                                 tokens2ids=train_dataset.tokens2ids,
+                                 char2ids=train_dataset.char2ids,
+                                 pre2ids=train_dataset.pre2ids,
+                                 suf2ids=train_dataset.suf2ids,
+                                 tags2ids=train_dataset.tags2ids)
+        dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
+                                collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
+    else:
+        dev_loader = None
 
     model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
                          pre_vocab_size=train_dataset.pre_vocab_size,
@@ -153,20 +178,13 @@ if __name__ == '__main__':
                          pre_padding_idx=pre_pad,
                          suf_padding_idx=suf_pad,
                          char_padding_idx=char_pad,
-                         char_level=False,
-                         token_level=True,
-                         pre_suf_level=True,
-                         pretrained_vecs=vecs)
+                         token_level=token_level,
+                         pre_suf_level=pre_suf_level,
+                         char_level=char_level,
+                         pretrained_vecs=pretrained_vecs)
     model.to(device)
-    a_best_acc, a_accuracies, a_steps = train(model, train_loader, dev_loader, device, y_pad)
+    best_acc, accuracies, steps = train(model, train_loader, dev_loader, device, y_pad, model_path)
 
-
-
-
-    #
-    # print(f'steps = {a_steps}')
-    # print(f'a = {a_accuracies}')
-    # print(f'b = {b_accuracies}')
-    # print(f'c = {d_accuracies}')
-    #
-    # print(f'a: {a_best_acc}\nb: {b_best_acc}\nd: {d_best_acc}')
+    print(f'steps = {steps}')
+    print(f'method_{method} = {accuracies}')
+    print(f'method_{method} best_acc_dev: {best_acc}')

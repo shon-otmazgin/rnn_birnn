@@ -138,8 +138,8 @@ class TagDataset(Dataset):
         suf_ids = []
         for t in x:
             prefix, suffix = get_prefix_suffix(t)
-            pre_ids.append(self.pre2ids[prefix])
-            suf_ids.append(self.suf2ids[suffix])
+            pre_ids.append(self.pre2ids[prefix] if prefix in self.pre2ids else self.pre2ids[UNK])
+            suf_ids.append(self.suf2ids[suffix] if suffix in self.suf2ids else self.suf2ids[UNK])
             ids = torch.zeros(len(t), dtype=torch.long)
             for i, c in enumerate(t):
                 ids[i] = self.char2ids[c] if c in self.char2ids else self.char2ids[UNK]
