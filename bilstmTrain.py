@@ -44,7 +44,7 @@ def pad_collate(batch, token_pad, pre_pad, suf_pad, char_pad, y_pad):
     return xx_tokens_pad, xx_pre_pad, xx_suf_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens
 
 
-def train(model, train_loader, dev_loader, device, y_pad, model_path):
+def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
     criterion = nn.CrossEntropyLoss(ignore_index=y_pad)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
@@ -80,7 +80,7 @@ def train(model, train_loader, dev_loader, device, y_pad, model_path):
             if seen_sents % 512 == 0:
                 print()
                 if dev_loader:
-                    acc = predict(model, dev_loader, device, y_pad)
+                    acc = predict(model, dev_loader, device, y_pad, o_id)
                     print(f'Dev acc:{acc:.8f}')
                     if acc > best_acc:
                         best_acc = acc
@@ -95,7 +95,7 @@ def train(model, train_loader, dev_loader, device, y_pad, model_path):
     # torch.save(model.state_dict(), 'bilstm.pt')
 
 
-def predict(model, loader, device, y_pad):
+def predict(model, loader, device, y_pad, o_id):
     correct = 0
     total = 0
 
@@ -110,10 +110,18 @@ def predict(model, loader, device, y_pad):
 
             logits = model(tokens_input_ids, pre_input_ids, suf_input_ids, char_input_ids, x_tokens_lens, x_chars_lens)  # [batch, seq_len, tagset]
             probs = logits.softmax(dim=2).argmax(dim=2)
-            mask = (y != y_pad)
 
-            correct += probs[mask].eq(y[mask]).sum()
-            total += sum(y_lens)
+            mask = (y != y_pad)
+            probs = probs[mask]
+            y = y[mask]
+
+            equals = probs.eq(y)
+
+            both_o_scores = torch.logical_and(equals, y == o_id)
+
+            correct += equals.sum() - both_o_scores.sum()
+            total += equals.shape[0] - both_o_scores.sum()
+
     return correct.item() / total
 
 
@@ -138,7 +146,7 @@ if __name__ == '__main__':
     vocab_path = args.vocab_path
 
     print(args)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     tokens2ids, pretrained_vecs = None, None
@@ -158,6 +166,7 @@ if __name__ == '__main__':
     suf_pad = train_dataset.suf2ids[PAD]
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
+    o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
@@ -187,7 +196,7 @@ if __name__ == '__main__':
                          char_level=char_level,
                          pretrained_vecs=pretrained_vecs)
     model.to(device)
-    best_acc, accuracies, steps = train(model, train_loader, dev_loader, device, y_pad, model_path)
+    best_acc, accuracies, steps = train(model, train_loader, dev_loader, device, y_pad, o_id, model_path)
 
     print(f'steps = {steps}')
     print(f'method_{method} = {accuracies}')
