@@ -4,12 +4,14 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 
 class BiLSTMTagger(nn.Module):
-    def __init__(self, vocab_size, alphabet_size, tagset_size,
-                 token_padding_idx, char_padding_idx,
-                 char_level, token_level,
+    def __init__(self, vocab_size, pre_vocab_size, suf_vocab_size, alphabet_size, tagset_size,
+                 token_padding_idx, char_padding_idx, pre_padding_idx, suf_padding_idx,
+                 char_level, token_level, pre_suf_level,
                  pretrained_vecs=None):
         super(BiLSTMTagger, self).__init__()
         self.vocab_size = vocab_size
+        self.pre_vocab_size = pre_vocab_size
+        self.suf_vocab_size = suf_vocab_size
         self.alphabet_size = alphabet_size
         self.tagset_size = tagset_size
         self.char_emb_size = 50
@@ -17,8 +19,11 @@ class BiLSTMTagger(nn.Module):
         self.lstm_dim = 768
         self.char_level = char_level
         self.token_level = token_level
+        self.pre_suf_level = pre_suf_level
 
         self.char_emb = nn.Embedding(self.alphabet_size, self.char_emb_size, padding_idx=char_padding_idx)
+        self.pre_emb = nn.Embedding(self.pre_vocab_size, self.token_emb_size, padding_idx=pre_padding_idx)
+        self.suf_emb = nn.Embedding(self.suf_vocab_size, self.token_emb_size, padding_idx=suf_padding_idx)
         if pretrained_vecs is None:
             self.word_emb = nn.Embedding(self.vocab_size, self.token_emb_size, padding_idx=token_padding_idx)
         else:
@@ -35,7 +40,7 @@ class BiLSTMTagger(nn.Module):
         self.linear = nn.Linear(2*self.lstm_dim, tagset_size)
         self.dropout = nn.Dropout(p=0.3)
 
-    def forward(self, tokens_input_ids, char_input_ids, x_tokens_lens, x_chars_lens):
+    def forward(self, tokens_input_ids, pre_input_ids, suf_input_ids, char_input_ids, x_tokens_lens, x_chars_lens):
         if self.char_level:
             flatten_x_chars_lens = [item for sublist in x_chars_lens for item in sublist]
             mask = torch.tensor(flatten_x_chars_lens, device=char_input_ids.device) > 0
@@ -58,6 +63,9 @@ class BiLSTMTagger(nn.Module):
 
         if self.token_level:
             tokens_reps = self.word_emb(tokens_input_ids)  # [batch, sequence_len, emb]
+            if self.pre_suf_level:
+                tokens_reps += self.pre_emb(pre_input_ids)  # [batch, sequence_len, emb]
+                tokens_reps += self.suf_emb(suf_input_ids)  # [batch, sequence_len, emb]
 
         if self.char_level and self.token_level:
             reps = torch.cat([chars_reps, tokens_reps], dim=-1) # [batch, sequence_len, 2*token_emb]
