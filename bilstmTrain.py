@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm import tqdm
 
-from data import PAD, TagDataset
+from data import PAD, TagDataset, load_pretrained_embeds
 from models import BiLSTMTagger
 
 
@@ -108,50 +108,54 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_dataset = TagDataset('data/pos/train', return_y=True)
+    vec_path = 'data/wordVectors.txt'
+    vocab_path = 'data/vocab.txt'
+    load_pretrained_embeds(vec_path, vocab_path)
+
+    train_dataset = TagDataset('data/pos/dev', return_y=True)
     token_pad, char_pad, y_pad = train_dataset.tokens2ids[PAD], train_dataset.char2ids[PAD], len(train_dataset.tags2ids)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
 
-    dev_dataset = TagDataset('data/pos/dev', return_y=True,
-                             tokens2ids=train_dataset.tokens2ids,
-                             tags2ids=train_dataset.tags2ids)
-    dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
-                            collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
-
-    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-                         alphabet_size=train_dataset.alphabet_size,
-                         tagset_size=train_dataset.tagset_size,
-                         token_padding_idx=token_pad,
-                         char_padding_idx=char_pad,
-                         char_level=False,
-                         token_level=True)
-    model.to(device)
-    a_best_acc, a_accuracies, a_steps = train(model, train_loader, dev_loader, device, y_pad)
-
-    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-                         alphabet_size=train_dataset.alphabet_size,
-                         tagset_size=train_dataset.tagset_size,
-                         token_padding_idx=token_pad,
-                         char_padding_idx=char_pad,
-                         char_level=True,
-                         token_level=False)
-    model.to(device)
-    b_best_acc, b_accuracies, b_steps = train(model, train_loader, dev_loader, device, y_pad)
-
-    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-                         alphabet_size=train_dataset.alphabet_size,
-                         tagset_size=train_dataset.tagset_size,
-                         token_padding_idx=token_pad,
-                         char_padding_idx=char_pad,
-                         char_level=True,
-                         token_level=True)
-    model.to(device)
-    d_best_acc, d_accuracies, d_steps = train(model, train_loader, dev_loader, device, y_pad)
-
-    print(f'steps = {a_steps}')
-    print(f'a = {a_accuracies}')
-    print(f'b = {b_accuracies}')
-    print(f'c = {d_accuracies}')
-
-    print(f'a: {a_best_acc}\nb: {b_best_acc}\na: {d_best_acc}')
+    # dev_dataset = TagDataset('data/pos/dev', return_y=True,
+    #                          tokens2ids=train_dataset.tokens2ids,
+    #                          tags2ids=train_dataset.tags2ids)
+    # dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
+    #                         collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
+    #
+    # model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+    #                      alphabet_size=train_dataset.alphabet_size,
+    #                      tagset_size=train_dataset.tagset_size,
+    #                      token_padding_idx=token_pad,
+    #                      char_padding_idx=char_pad,
+    #                      char_level=False,
+    #                      token_level=True)
+    # model.to(device)
+    # a_best_acc, a_accuracies, a_steps = train(model, train_loader, dev_loader, device, y_pad)
+    #
+    # model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+    #                      alphabet_size=train_dataset.alphabet_size,
+    #                      tagset_size=train_dataset.tagset_size,
+    #                      token_padding_idx=token_pad,
+    #                      char_padding_idx=char_pad,
+    #                      char_level=True,
+    #                      token_level=False)
+    # model.to(device)
+    # b_best_acc, b_accuracies, b_steps = train(model, train_loader, dev_loader, device, y_pad)
+    #
+    # model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+    #                      alphabet_size=train_dataset.alphabet_size,
+    #                      tagset_size=train_dataset.tagset_size,
+    #                      token_padding_idx=token_pad,
+    #                      char_padding_idx=char_pad,
+    #                      char_level=True,
+    #                      token_level=True)
+    # model.to(device)
+    # d_best_acc, d_accuracies, d_steps = train(model, train_loader, dev_loader, device, y_pad)
+    #
+    # print(f'steps = {a_steps}')
+    # print(f'a = {a_accuracies}')
+    # print(f'b = {b_accuracies}')
+    # print(f'c = {d_accuracies}')
+    #
+    # print(f'a: {a_best_acc}\nb: {b_best_acc}\nd: {d_best_acc}')

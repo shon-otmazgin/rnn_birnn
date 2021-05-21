@@ -1,8 +1,25 @@
 import torch
-from torch.nn.utils.rnn import pad_sequence
+import numpy as np
 from torch.utils.data import Dataset
 PAD = '<PAD>'
 UNK = '<UNK>'
+
+
+def load_pretrained_embeds(vec_path, vocab_path):
+    vecs = np.loadtxt(vec_path)
+    words = []
+    with open(vocab_path, 'r') as f:
+        c = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+        for row in c:
+            words.append(row[0])
+
+    w2v = {}
+    w2idx = {}
+    for i, w in enumerate(words):
+        w2idx[w] = i
+        w2v[i] = np.array(vecs[i])
+
+    return w2idx, w2v
 
 
 def read_data(filename, with_labels):
