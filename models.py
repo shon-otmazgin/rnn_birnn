@@ -44,7 +44,7 @@ class BiLSTMTagger(nn.Module):
             x_packed = pack_padded_sequence(embds, x_chars_lens, batch_first=True, enforce_sorted=False)
             _, (h_chars, c) = self.lstm_c(x_packed)
 
-            chars_reps = torch.zeros((batch, sequence_len, self.token_emb_size), device=h_chars.device)
+            chars_reps = h_chars.new_zeros((batch, sequence_len, self.token_emb_size))
             total_l = 0
             for i, l in enumerate(x_tokens_lens):
                 chars_reps[i, 0:l, :] = h_chars[:, total_l:total_l+l, :]
