@@ -6,7 +6,7 @@ from tqdm import trange
 from tqdm import tqdm
 
 from data import PAD, TagDataset
-from models import BiLSTMTaggerA, BiLSTMTaggerB
+from models import BiLSTMTaggerA, BiLSTMTagger
 
 
 def pad_collate_chars(xx, max_pad, pad_value):
@@ -140,13 +140,13 @@ if __name__ == '__main__':
     dev_loader = DataLoader(dev_dataset, batch_size=2, shuffle=False,
                             collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
 
-    model = BiLSTMTaggerB(vocab_size=train_dataset.vocab_size,
-                          alphabet_size=train_dataset.alphabet_size,
-                          tagset_size=train_dataset.tagset_size,
-                          token_padding_idx=token_pad,
-                          char_padding_idx=char_pad,
-                          char_level=True,
-                          token_level=False)
+    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+                         alphabet_size=train_dataset.alphabet_size,
+                         tagset_size=train_dataset.tagset_size,
+                         token_padding_idx=token_pad,
+                         char_padding_idx=char_pad,
+                         char_level=True,
+                         token_level=True)
     model.to(device)
 
     train(model, train_loader, dev_loader, device, y_pad)
