@@ -146,7 +146,7 @@ if __name__ == '__main__':
         token_level, pre_suf_level, char_level = True, True, False
         tokens2ids, pretrained_vecs = load_pretrained_embeds(vec_path, vocab_path)
     elif method == 'd':
-        token_level, pre_suf_level, char_level = True, True, False
+        token_level, pre_suf_level, char_level = True, False, True
 
     train_dataset = TagDataset(train_path, return_y=True, tokens2ids=tokens2ids)
     token_pad = train_dataset.tokens2ids[PAD]
