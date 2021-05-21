@@ -75,7 +75,8 @@ def train(model, train_loader, dev_loader, device, y_pad):
                 print(f'Best Dev acc:{best_acc:.8f}')
                 train_loss = 0
 
-    torch.save(model.state_dict(), 'bilstm.pt')
+    return best_acc
+    # torch.save(model.state_dict(), 'bilstm.pt')
 
 
 def predict(model, loader, device, y_pad):
@@ -102,43 +103,39 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-
-    # section A
-    # train_dataset = DatasetA('data/pos/train', return_y=True)
-    # x_pad, y_pad = train_dataset.tokens2ids[PAD], len(train_dataset.tags2ids)
-    # train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True,
-    #                           collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
-    #
-    # dev_dataset = DatasetA('data/pos/dev', return_y=True,
-    #                        tokens2ids=train_dataset.tokens2ids,
-    #                        tags2ids=train_dataset.tags2ids)
-    # dev_loader = DataLoader(dev_dataset, batch_size=64, shuffle=False,
-    #                         collate_fn=lambda b: pad_collate(b, x_pad, y_pad))
-    #
-    # model = BiLSTMTaggerA(vocab_size=train_dataset.vocab_size,
-    #                       tagset_size=train_dataset.tagset_size,
-    #                       padding_idx=x_pad)
-    # model.to(device)
-
-    # section B
-    train_dataset = TagDataset('data/pos/dev', return_y=True)
+    train_dataset = TagDataset('data/pos/train', return_y=True)
     token_pad, char_pad, y_pad = train_dataset.tokens2ids[PAD], train_dataset.char2ids[PAD], len(train_dataset.tags2ids)
 
-    train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
-    # for step, (xx_tokens_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(train_loader):
-    #     print(xx_tokens_pad.shape)
-    #     print(xx_chars_pad.shape)
-    #     print(yy_pad.shape)
-    #     print(x_tokens_lens)
-    #     print(x_chars_lens)
-    #     print(y_lens)
-    #     break
+
     dev_dataset = TagDataset('data/pos/dev', return_y=True,
                              tokens2ids=train_dataset.tokens2ids,
                              tags2ids=train_dataset.tags2ids)
-    dev_loader = DataLoader(dev_dataset, batch_size=2, shuffle=False,
+    dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
                             collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
+
+    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+                         alphabet_size=train_dataset.alphabet_size,
+                         tagset_size=train_dataset.tagset_size,
+                         token_padding_idx=token_pad,
+                         char_padding_idx=char_pad,
+                         char_level=False,
+                         token_level=True)
+    model.to(device)
+
+    a_acc = train(model, train_loader, dev_loader, device, y_pad)
+
+    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
+                         alphabet_size=train_dataset.alphabet_size,
+                         tagset_size=train_dataset.tagset_size,
+                         token_padding_idx=token_pad,
+                         char_padding_idx=char_pad,
+                         char_level=True,
+                         token_level=False)
+    model.to(device)
+
+    b_acc = train(model, train_loader, dev_loader, device, y_pad)
 
     model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
                          alphabet_size=train_dataset.alphabet_size,
@@ -149,4 +146,6 @@ if __name__ == '__main__':
                          token_level=True)
     model.to(device)
 
-    train(model, train_loader, dev_loader, device, y_pad)
+    d_acc = train(model, train_loader, dev_loader, device, y_pad)
+
+    print(f'a: {a_acc}\nb: {b_acc}\na: {d_acc}')
