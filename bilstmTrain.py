@@ -46,7 +46,7 @@ def pad_collate(batch, token_pad, pre_pad, suf_pad, char_pad, y_pad):
 
 def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
     criterion = nn.CrossEntropyLoss(ignore_index=y_pad)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
     train_loss = 0
     seen_sents = 0
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
     o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
     if dev_path:
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                                  pre2ids=train_dataset.pre2ids,
                                  suf2ids=train_dataset.suf2ids,
                                  tags2ids=train_dataset.tags2ids)
-        dev_loader = DataLoader(dev_dataset, batch_size=128, shuffle=False,
+        dev_loader = DataLoader(dev_dataset, batch_size=256, shuffle=False,
                                 collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
     else:
         dev_loader = None
