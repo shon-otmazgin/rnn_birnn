@@ -46,6 +46,9 @@ def train(model, train_loader, dev_loader, device, y_pad):
     seen_sents = 0
     best_acc = 0
 
+    accuracies = []
+    steps = []
+
     train_iterator = trange(0, 5, desc="Epoch", position=0)
     for epoch in train_iterator:
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
@@ -73,9 +76,11 @@ def train(model, train_loader, dev_loader, device, y_pad):
                 if acc > best_acc:
                     best_acc = acc
                 print(f'Best Dev acc:{best_acc:.8f}')
+                accuracies.append(acc)
+                steps.append(seen_sents)
                 train_loss = 0
 
-    return best_acc
+    return best_acc, accuracies, steps
     # torch.save(model.state_dict(), 'bilstm.pt')
 
 
@@ -122,8 +127,7 @@ if __name__ == '__main__':
                          char_level=False,
                          token_level=True)
     model.to(device)
-
-    a_acc = train(model, train_loader, dev_loader, device, y_pad)
+    a_best_acc, a_accuracies, a_steps = train(model, train_loader, dev_loader, device, y_pad)
 
     model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
                          alphabet_size=train_dataset.alphabet_size,
@@ -133,8 +137,7 @@ if __name__ == '__main__':
                          char_level=True,
                          token_level=False)
     model.to(device)
-
-    b_acc = train(model, train_loader, dev_loader, device, y_pad)
+    b_best_acc, b_accuracies, b_steps = train(model, train_loader, dev_loader, device, y_pad)
 
     model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
                          alphabet_size=train_dataset.alphabet_size,
@@ -144,7 +147,11 @@ if __name__ == '__main__':
                          char_level=True,
                          token_level=True)
     model.to(device)
+    d_best_acc, d_accuracies, d_steps = train(model, train_loader, dev_loader, device, y_pad)
 
-    d_acc = train(model, train_loader, dev_loader, device, y_pad)
+    print(f'steps = {a_steps}')
+    print(f'a = {a_accuracies}')
+    print(f'b = {b_accuracies}')
+    print(f'c = {d_accuracies}')
 
-    print(f'a: {a_acc}\nb: {b_acc}\na: {d_acc}')
+    print(f'a: {a_best_acc}\nb: {b_best_acc}\na: {d_best_acc}')
