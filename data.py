@@ -96,10 +96,9 @@ class TagDataset(Dataset):
             self.X, self.unique_x_toks = data
 
         if tokens2ids is None:
-            self.tokens2ids = {PAD: 0}
-            for t in self.unique_x_toks:
-                self.tokens2ids[t] = len(self.tokens2ids)
+            self.tokens2ids = {t: i for i, t in enumerate(self.unique_x_toks)}
             self.tokens2ids[UNK] = len(self.tokens2ids)
+            self.tokens2ids[PAD] = len(self.tokens2ids)
         else:
             self.tokens2ids = tokens2ids
 
@@ -108,12 +107,13 @@ class TagDataset(Dataset):
         else:
             self.tags2ids = tags2ids
 
-        self.char2ids = {PAD: 0}
+        self.char2ids = {}
         for token in self.tokens2ids:
             for c in token:
                 if c not in self.char2ids:
                     self.char2ids[c] = len(self.char2ids)
         self.char2ids[UNK] = len(self.char2ids)
+        self.char2ids[PAD] = len(self.char2ids)
 
         self.vocab_size = len(self.tokens2ids.keys())
         self.alphabet_size = len(self.char2ids.keys())

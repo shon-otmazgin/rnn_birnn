@@ -9,9 +9,15 @@ from data import PAD, TagDataset
 from models import BiLSTMTaggerA, BiLSTMTaggerB
 
 
-def pad_collate_chars(xx, max_pad):
-    xx_pad = torch.stack([torch.cat([i, i.new_zeros(max_pad - i.size(0))], 0) for i in xx], 0)
-    return xx_pad
+def pad_collate_chars(xx, max_pad, pad_value):
+    l = []
+    for i in xx:
+        pad = i.new_zeros(max_pad - i.size(0))
+        pad += pad_value
+        l.append(torch.cat([i, pad]))
+
+    return torch.stack(l, 0)
+
 
 def pad_collate(batch, token_pad, char_pad, y_pad):
   (xx_tokens, xx_chars, yy) = zip(*batch)
@@ -22,7 +28,7 @@ def pad_collate(batch, token_pad, char_pad, y_pad):
   xx_tokens_pad = pad_sequence(xx_tokens, batch_first=True, padding_value=token_pad)
 
   max_token_len = max(max(lens) for lens in x_chars_lens)
-  xx_chars_inside_pad = [pad_collate_chars(xx, max_token_len) for xx in xx_chars]
+  xx_chars_inside_pad = [pad_collate_chars(xx, max_token_len, char_pad) for xx in xx_chars]
   xx_chars_pad = pad_sequence(xx_chars_inside_pad, batch_first=True, padding_value=char_pad)
   yy_pad = pad_sequence(yy, batch_first=True, padding_value=y_pad)
 
