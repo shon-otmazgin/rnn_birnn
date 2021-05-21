@@ -23,6 +23,9 @@ def pad_collate(batch, token_pad, char_pad, y_pad):
   (xx_tokens, xx_chars, yy) = zip(*batch)
   x_tokens_lens = [len(x) for x in xx_tokens]
   x_chars_lens = [[len(x) for x in tokens] for tokens in xx_chars]
+  for l in x_chars_lens:
+      for i in range(max(x_tokens_lens)-len(l)):
+          l.append(0)
   y_lens = [len(y) for y in yy]
 
   xx_tokens_pad = pad_sequence(xx_tokens, batch_first=True, padding_value=token_pad)
@@ -46,12 +49,14 @@ def train(model, train_loader, dev_loader, device, y_pad):
     train_iterator = trange(0, 5, desc="Epoch", position=0)
     for epoch in train_iterator:
         epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
+        for step, (xx_tokens_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(epoch_iterator):
             model.train()
             model.zero_grad()
-            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+            tokens_input_ids = xx_tokens_pad.to(device)
+            char_input_ids = xx_chars_pad.to(device)
+            y = yy_pad.to(device)
 
-            logits = model(input_ids, x_lens)  # [batch, seq_len, tagset]
+            logits = model(tokens_input_ids, char_input_ids, x_tokens_lens, x_chars_lens)  # [batch, seq_len, tagset]
             logits = logits.permute(0, 2, 1)  # [batch, tagset, seq_len]
             loss = criterion(logits, y)
 
@@ -59,7 +64,7 @@ def train(model, train_loader, dev_loader, device, y_pad):
             optimizer.step()
 
             train_loss += loss.item()
-            seen_sents += input_ids.shape[0]
+            seen_sents += tokens_input_ids.shape[0]
 
             if seen_sents % 500 == 0:
                 acc = predict(model, dev_loader, device, y_pad)
@@ -79,16 +84,18 @@ def predict(model, loader, device, y_pad):
 
     model.eval()
     with torch.no_grad():
-        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(loader):
-            input_ids, y = xx_pad.to(device), yy_pad.to(device)
+        for step, (xx_tokens_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(loader):
+            tokens_input_ids = xx_tokens_pad.to(device)
+            char_input_ids = xx_chars_pad.to(device)
+            y = yy_pad.to(device)
 
-            logits = model(input_ids, x_lens)  # [batch, seq_len, tagset]
+            logits = model(tokens_input_ids, char_input_ids, x_tokens_lens, x_chars_lens)  # [batch, seq_len, tagset]
             probs = logits.softmax(dim=2).argmax(dim=2)
             mask = (y != y_pad)
 
             correct += probs[mask].eq(y[mask]).sum()
             total += sum(y_lens)
-    return correct.item() / total.item()
+    return correct.item() / total
 
 
 if __name__ == '__main__':
@@ -119,21 +126,27 @@ if __name__ == '__main__':
 
     train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
-    for step, (xx_tokens_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(train_loader):
-        print(xx_tokens_pad.shape)
-        print(xx_chars_pad.shape)
-        print(yy_pad.shape)
-        print(x_tokens_lens)
-        print(x_chars_lens)
-        print(y_lens)
-    # dev_dataset = TagDataset('data/pos/dev', return_y=True,
-    #                          tokens2ids=train_dataset.tokens2ids,
-    #                          tags2ids=train_dataset.tags2ids)
-    # dev_loader = DataLoader(dev_dataset, batch_size=1, shuffle=False)
-    #
-    # model = BiLSTMTaggerB(vocab_size=train_dataset.alphabet_size,
-    #                       tagset_size=train_dataset.tagset_size,
-    #                       padding_idx=token_pad)
-    # model.to(device)
-    #
-    # train(model, train_loader, dev_loader, device, y_pad)
+    # for step, (xx_tokens_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(train_loader):
+    #     print(xx_tokens_pad.shape)
+    #     print(xx_chars_pad.shape)
+    #     print(yy_pad.shape)
+    #     print(x_tokens_lens)
+    #     print(x_chars_lens)
+    #     print(y_lens)
+    #     break
+    dev_dataset = TagDataset('data/pos/dev', return_y=True,
+                             tokens2ids=train_dataset.tokens2ids,
+                             tags2ids=train_dataset.tags2ids)
+    dev_loader = DataLoader(dev_dataset, batch_size=2, shuffle=False,
+                            collate_fn=lambda b: pad_collate(b, token_pad, char_pad, y_pad))
+
+    model = BiLSTMTaggerB(vocab_size=train_dataset.vocab_size,
+                          alphabet_size=train_dataset.alphabet_size,
+                          tagset_size=train_dataset.tagset_size,
+                          token_padding_idx=token_pad,
+                          char_padding_idx=char_pad,
+                          char_level=True,
+                          token_level=False)
+    model.to(device)
+
+    train(model, train_loader, dev_loader, device, y_pad)

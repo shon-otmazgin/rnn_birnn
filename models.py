@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
@@ -31,14 +32,19 @@ class BiLSTMTaggerA(nn.Module):
 
 
 class BiLSTMTaggerB(nn.Module):
-    def __init__(self, vocab_size, tagset_size, padding_idx):
+    def __init__(self, vocab_size, alphabet_size, tagset_size, token_padding_idx, char_padding_idx, char_level, token_level):
         super(BiLSTMTaggerB, self).__init__()
         self.vocab_size = vocab_size
+        self.alphabet_size = alphabet_size
         self.tagset_size = tagset_size
         self.emb_size = 300
         self.s_dim = 768
+        self.char_level = char_level
+        self.token_level = token_level
 
-        self.char_emb = nn.Embedding(self.vocab_size, self.emb_size, padding_idx=padding_idx)
+        self.char_emb = nn.Embedding(self.alphabet_size, self.emb_size, padding_idx=char_padding_idx)
+        self.word_emb = nn.Embedding(self.vocab_size, self.emb_size, padding_idx=token_padding_idx)
+
         self.lstm_c = nn.LSTM(bidirectional=False, input_size=self.emb_size,
                               hidden_size=self.s_dim, num_layers=1, batch_first=True)
         self.bilstm1 = nn.LSTM(bidirectional=True, input_size=self.s_dim,
@@ -48,16 +54,35 @@ class BiLSTMTaggerB(nn.Module):
 
         self.linear = nn.Linear(2*self.s_dim, tagset_size)
 
-    def forward(self, input_ids, input_lens):
-        input_ids = input_ids.squeeze(0)
-        embds = self.char_emb(input_ids)        # [batch, sequence_len, emb]
-        x_packed = pack_padded_sequence(embds, input_lens, batch_first=True, enforce_sorted=False)
+    def forward(self, tokens_input_ids, char_input_ids, x_tokens_lens, x_chars_lens):
+        if self.char_level:
+            flatten_x_chars_lens = [item for sublist in x_chars_lens for item in sublist]
+            mask = torch.tensor(flatten_x_chars_lens, device=char_input_ids.device) > 0
+            x_chars_lens = [l for l in flatten_x_chars_lens if l > 0]
 
-        _, (h, c) = self.lstm_c(x_packed)
+            embds = self.char_emb(char_input_ids)        # [batch, sequence_len, token_len, emb]
+            batch, sequence_len, token_len, _ = embds.size()
 
-        lstm_out, _ = self.bilstm1(h)          # [batch, sequence_len, out_dim]
+            embds = embds.view(-1, token_len, self.emb_size)     # [batch*sequence_len, token_len, emb]
+            embds = embds[mask]
+
+            x_packed = pack_padded_sequence(embds, x_chars_lens, batch_first=True, enforce_sorted=False)
+            _, (h_chars, c) = self.lstm_c(x_packed)
+
+            chars_reps = torch.zeros((batch, sequence_len, self.s_dim), device=h_chars.device)
+            total_l = 0
+            for i, l in enumerate(x_tokens_lens):
+                chars_reps[i, 0:l, :] = h_chars[:, total_l:total_l+l, :]
+                total_l += l
+
+        if self.token_level:
+            embds = self.word_emb(tokens_input_ids)  # [batch, sequence_len, emb]
+            x_packed = pack_padded_sequence(embds, x_tokens_lens, batch_first=True, enforce_sorted=False)
+
+        x_packed = pack_padded_sequence(chars_reps, x_tokens_lens, batch_first=True, enforce_sorted=False)
+        lstm_out, _ = self.bilstm1(x_packed)  # [batch, sequence_len, out_dim]
         lstm_out, _ = self.bilstm2(lstm_out)
-        # output_padded, output_lengths = pad_packed_sequence(lstm_out, batch_first=True)
+        output_padded, output_lengths = pad_packed_sequence(lstm_out, batch_first=True)
 
-        output = self.linear(lstm_out)
+        output = self.linear(output_padded)
         return output
