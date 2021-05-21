@@ -78,6 +78,7 @@ def train(model, train_loader, dev_loader, device, y_pad, model_path):
             seen_sents += tokens_input_ids.shape[0]
 
             if seen_sents % 500 == 0:
+                print()
                 if dev_loader:
                     acc = predict(model, dev_loader, device, y_pad)
                     print(f'Dev acc:{acc:.8f}')
