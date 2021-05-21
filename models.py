@@ -4,16 +4,12 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
 
 class BiLSTMTagger(nn.Module):
-    def __init__(self, vocab_size, pre_vocab_size, suf_vocab_size, alphabet_size, tagset_size,
-                 token_padding_idx, char_padding_idx, pre_padding_idx, suf_padding_idx,
+    def __init__(self, vocab_size, alphabet_size, tagset_size,
+                 token_padding_idx, char_padding_idx,
                  char_level, token_level, pre_suf_level,
+                 pre_vocab_size=None, suf_vocab_size=None, pre_padding_idx=None, suf_padding_idx=None,
                  pretrained_vecs=None):
         super(BiLSTMTagger, self).__init__()
-        self.vocab_size = vocab_size
-        self.pre_vocab_size = pre_vocab_size
-        self.suf_vocab_size = suf_vocab_size
-        self.alphabet_size = alphabet_size
-        self.tagset_size = tagset_size
         self.char_emb_size = 50
         self.token_emb_size = 50
         self.lstm_dim = 768
@@ -21,11 +17,12 @@ class BiLSTMTagger(nn.Module):
         self.token_level = token_level
         self.pre_suf_level = pre_suf_level
 
-        self.char_emb = nn.Embedding(self.alphabet_size, self.char_emb_size, padding_idx=char_padding_idx)
-        self.pre_emb = nn.Embedding(self.pre_vocab_size, self.token_emb_size, padding_idx=pre_padding_idx)
-        self.suf_emb = nn.Embedding(self.suf_vocab_size, self.token_emb_size, padding_idx=suf_padding_idx)
+        self.char_emb = nn.Embedding(alphabet_size, self.char_emb_size, padding_idx=char_padding_idx)
+        if self.pre_suf_level:
+            self.pre_emb = nn.Embedding(pre_vocab_size, self.token_emb_size, padding_idx=pre_padding_idx)
+            self.suf_emb = nn.Embedding(suf_vocab_size, self.token_emb_size, padding_idx=suf_padding_idx)
         if pretrained_vecs is None:
-            self.word_emb = nn.Embedding(self.vocab_size, self.token_emb_size, padding_idx=token_padding_idx)
+            self.word_emb = nn.Embedding(vocab_size, self.token_emb_size, padding_idx=token_padding_idx)
         else:
             self.word_emb = nn.Embedding.from_pretrained(pretrained_vecs, freeze=False, padding_idx=token_padding_idx)
 

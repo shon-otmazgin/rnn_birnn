@@ -116,10 +116,13 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    train_path = 'data/pos/dev'
+    train_path = 'data/pos/train'
     dev_path = 'data/pos/dev'
     vec_path = 'data/wordVectors.txt'
     vocab_path = 'data/vocab.txt'
+
+
+
 
     tokens2ids, vecs = load_pretrained_embeds(vec_path, vocab_path)
 
@@ -156,26 +159,10 @@ if __name__ == '__main__':
                          pretrained_vecs=vecs)
     model.to(device)
     a_best_acc, a_accuracies, a_steps = train(model, train_loader, dev_loader, device, y_pad)
-    #
-    # model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-    #                      alphabet_size=train_dataset.alphabet_size,
-    #                      tagset_size=train_dataset.tagset_size,
-    #                      token_padding_idx=token_pad,
-    #                      char_padding_idx=char_pad,
-    #                      char_level=True,
-    #                      token_level=False)
-    # model.to(device)
-    # b_best_acc, b_accuracies, b_steps = train(model, train_loader, dev_loader, device, y_pad)
-    #
-    # model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-    #                      alphabet_size=train_dataset.alphabet_size,
-    #                      tagset_size=train_dataset.tagset_size,
-    #                      token_padding_idx=token_pad,
-    #                      char_padding_idx=char_pad,
-    #                      char_level=True,
-    #                      token_level=True)
-    # model.to(device)
-    # d_best_acc, d_accuracies, d_steps = train(model, train_loader, dev_loader, device, y_pad)
+
+
+
+
     #
     # print(f'steps = {a_steps}')
     # print(f'a = {a_accuracies}')
