@@ -51,9 +51,12 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
     train_loss = 0
     seen_sents = 0
     best_acc = 0
+    eval = 500
+    eval_time = 1
 
     accuracies = []
     steps = []
+    state_dict = None
 
     train_iterator = trange(0, 5, desc="Epoch", position=0)
     for epoch in train_iterator:
@@ -77,13 +80,15 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
             train_loss += loss.item()
             seen_sents += tokens_input_ids.shape[0]
 
-            if seen_sents % 512 == 0:
+            if seen_sents >= (eval_time * eval):
+                eval_time += 1
                 print()
                 if dev_loader:
                     acc = predict(model, dev_loader, device, y_pad, o_id)
                     print(f'Dev acc:{acc:.8f}')
                     if acc > best_acc:
                         best_acc = acc
+                        state_dict = model.state_dict()
                     print(f'Best Dev acc:{best_acc:.8f}')
                     accuracies.append(acc)
                     steps.append(seen_sents)
@@ -91,8 +96,11 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
                 print(f'Train loss: {(loss / 500):.8f}')
                 train_loss = 0
 
+    if state_dict:
+        torch.save(state_dict, model_path)
+    else:
+        torch.save(model.state_dict(), model_path)
     return best_acc, accuracies, steps
-    # torch.save(model.state_dict(), 'bilstm.pt')
 
 
 def predict(model, loader, device, y_pad, o_id):
@@ -122,7 +130,7 @@ def predict(model, loader, device, y_pad, o_id):
             correct += equals.sum() - both_o_scores.sum()
             total += equals.shape[0] - both_o_scores.sum()
 
-    return correct.item() / total
+    return (correct / total).item()
 
 
 if __name__ == '__main__':
@@ -146,7 +154,7 @@ if __name__ == '__main__':
     vocab_path = args.vocab_path
 
     print(args)
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     tokens2ids, pretrained_vecs = None, None
