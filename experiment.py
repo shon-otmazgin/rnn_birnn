@@ -103,7 +103,7 @@ def train(model, train_loader, test_loader, device):
                 train_acc = predict(model, train_loader, device)
                 test_acc = predict(model, test_loader, device)
                 print()
-                print(f'Train loss: {(loss / 500):.8f}')
+                print(f'Train loss: {(loss / 100):.8f}')
                 print(f'Train acc:{train_acc:.8f}')
                 print(f'Test acc:{test_acc:.8f}')
                 steps.append(seen_examples)
