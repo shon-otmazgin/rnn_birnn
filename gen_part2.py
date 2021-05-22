@@ -29,7 +29,7 @@ def gen_palindrome_examples(n, file, palindrome):
             if palindrome:
                 mid = (len(s) // 2) + 1
                 s = s[:mid]
-                f.write(s + s[::-1] + '\n')
+                f.write(s[:mid] + s[::-1] + '\n')
             else:
                 f.write(s + '\n')
 
