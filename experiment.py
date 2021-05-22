@@ -98,6 +98,7 @@ def train(model, train_loader, test_loader, device):
             optimizer.step()
 
             train_loss += loss.item()
+            seen_examples += input_ids.shape[0]
             if seen_examples % 100 == 0:
                 train_acc = predict(model, test_loader, device)
                 test_acc = predict(model, test_loader, device)
@@ -140,7 +141,7 @@ if __name__ == '__main__':
     train_dataset = LangDataset('pos_train', 'neg_train')
     test_dataset = LangDataset('pos_test', 'neg_test')
 
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True, collate_fn=pad_collate)
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
 
     model = LangRNN()
