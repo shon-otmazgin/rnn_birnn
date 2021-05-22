@@ -100,7 +100,7 @@ def train(model, train_loader, test_loader, device):
             train_loss += loss.item()
             seen_examples += input_ids.shape[0]
             if seen_examples % 100 == 0:
-                train_acc = predict(model, test_loader, device)
+                train_acc = predict(model, train_loader, device)
                 test_acc = predict(model, test_loader, device)
                 print()
                 print(f'Train loss: {(loss / 500):.8f}')
