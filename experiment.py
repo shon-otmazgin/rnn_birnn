@@ -137,23 +137,17 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
-    size = 500
-    # print(f'Train Dataset size: {size * 2}')
-    # print(f'Test Dataset size: {size // 10 * 2}')
-    os.system(f'python gen_examples.py {size} --suffix_file_name train')
-    os.system(f'python gen_examples.py {size // 10} --suffix_file_name test')
+    train_dataset = LangDataset('pos_train', 'neg_train')
+    test_dataset = LangDataset('pos_test', 'neg_test')
 
-    # train_dataset = LangDataset('pos_train', 'neg_train')
-    # test_dataset = LangDataset('pos_test', 'neg_test')
-    #
-    # train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
-    #
-    # model = LangRNN()
-    # model.to(device)
-    # steps, train_losses, train_accuracies, test_accuracies = train(model, train_loader, test_loader, device)
-    #
-    # print(f'steps = {steps}')
-    # print(f'losses = {train_losses}')
-    # print(f'train_accuracies = {train_accuracies}')
-    # print(f'test_accuracies = {test_accuracies}')
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
+
+    model = LangRNN()
+    model.to(device)
+    steps, train_losses, train_accuracies, test_accuracies = train(model, train_loader, test_loader, device)
+
+    print(f'steps = {steps}')
+    print(f'losses = {train_losses}')
+    print(f'train_accuracies = {train_accuracies}')
+    print(f'test_accuracies = {test_accuracies}')

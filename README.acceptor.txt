@@ -2,5 +2,5 @@ Running RNN acceptor:
  - python experiment.py
 
 Assumptions:
-1. gen_examples.py is on the same directory as experiment.py
+1. data files 'pos_train', 'neg_train', 'pos_test' and 'neg_test' are in the same directory as experiment.py
 
