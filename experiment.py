@@ -40,9 +40,9 @@ class LangDataset(Dataset):
 
     def _tensorize_example(self, example):
         x, y = example
-        idxs = [self.c2i[c] for c in x]
+        ids = [self.c2i[c] for c in x]
         y = torch.zeros(1) if y == 0 else torch.ones(1)
-        return torch.tensor(idxs, dtype=torch.long), y
+        return torch.tensor(ids, dtype=torch.long), y
 
 
 class LangRNN(nn.Module):
@@ -65,9 +65,9 @@ class LangRNN(nn.Module):
         )
 
     def forward(self, input_ids, input_lens):
-        embds = self.char_emb(input_ids)    #[batch, sequence_len, emb]
+        embds = self.char_emb(input_ids)        #[batch, sequence_len, emb]
         x_packed = pack_padded_sequence(embds, input_lens, batch_first=True, enforce_sorted=False)
-        _, (h, c) = self.rnn(x_packed)         #[batch, sequence_len, out_dim]
+        _, (h, c) = self.rnn(x_packed)          #[batch, 1, out_dim]
         h = h.squeeze(0)                        #[batch, out_dim]
         return self.mlp(h)                      #[batch, 1]
 
@@ -76,42 +76,46 @@ def train(model, train_loader, test_loader, device):
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    losses = []
+    seen_examples = 0
+    steps = []
+    train_loss = 0
+    train_losses = []
     train_accuracies = []
     test_accuracies = []
-    steps = []
-    wall_clock = []
-    train_loss = 0
 
-    epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-    start = time.time()
-    for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
-        model.train()
-        model.zero_grad()
-        input_ids, y = xx_pad.to(device), yy_pad.to(device)
+    train_iterator = trange(0, 5, desc="Epoch", position=0)
+    for epoch in train_iterator:
+        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
+        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
+            model.train()
+            model.zero_grad()
+            input_ids, y = xx_pad.to(device), yy_pad.to(device)
 
-        logits = model(input_ids, x_lens)   #[batch, 1]
-        loss = criterion(logits, y)
+            logits = model(input_ids, x_lens)   #[batch, 1]
+            loss = criterion(logits, y)
 
-        loss.backward()
-        optimizer.step()
-        end = time.time()
+            loss.backward()
+            optimizer.step()
 
-        train_loss += loss.item()
-        losses.append(loss.item() / ((step+1) * y.shape[0]))
+            train_loss += loss.item()
+            if seen_examples % 100 == 0:
+                train_acc = predict(model, test_loader, device)
+                test_acc = predict(model, test_loader, device)
+                print()
+                print(f'Train loss: {(loss / 500):.8f}')
+                print(f'Train acc:{acc:.8f}')
+                print(f'Dev acc:{acc:.8f}')
+                steps.append(seen_examples)
+                train_accuracies.append(train_acc)
+                train_losses.append(train_loss)
+                test_accuracies.append(test_acc)
 
-        # train_acc = test(model, train_loader, device)
-        # train_accuracies.append(train_acc)
-        test_acc = test(model, test_loader, device)
-        test_accuracies.append(test_acc)
+                train_loss = 0
 
-        steps.append((step+1) * y.shape[0])
-        wall_clock.append(end-start)
-
-    return losses, train_accuracies, test_accuracies, steps, wall_clock
+    return steps, train_losses, train_accuracies, test_accuracies
 
 
-def test(model, loader, device):
+def predict(model, loader, device):
     correct = 0
 
     model.eval()
@@ -130,27 +134,26 @@ if __name__ == '__main__':
     random.seed(42)
     torch.manual_seed(42)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     size = 500
-    print(f'Train Dataset size: {size * 2}')
-    print(f'Test Dataset size: {size // 10 * 2}')
-    os.system(f'python gen_examples.py --n {size} --suffix_file_name train')
-    os.system(f'python gen_examples.py --n {size // 10} --suffix_file_name test')
+    # print(f'Train Dataset size: {size * 2}')
+    # print(f'Test Dataset size: {size // 10 * 2}')
+    os.system(f'python gen_examples.py {size} --suffix_file_name train')
+    os.system(f'python gen_examples.py {size // 10} --suffix_file_name test')
 
-    train_dataset = LangDataset('pos_train', 'neg_train')
-    test_dataset = LangDataset('pos_test', 'neg_test')
-
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
-
-    model = LangRNN()
-    model.to(device)
-    losses, train_accuracies, test_accuracies, steps, wall_clock = train(model, train_loader, test_loader, device)
-
-    print(f'steps = {steps}')
-    print(f'losses = {losses}')
-    print(f'train_accuracies = {train_accuracies}')
-    print(f'test_accuracies = {test_accuracies}')
-    print(f'wall_clock = {wall_clock}')
+    # train_dataset = LangDataset('pos_train', 'neg_train')
+    # test_dataset = LangDataset('pos_test', 'neg_test')
+    #
+    # train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True, collate_fn=pad_collate)
+    # test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True, collate_fn=pad_collate)
+    #
+    # model = LangRNN()
+    # model.to(device)
+    # steps, train_losses, train_accuracies, test_accuracies = train(model, train_loader, test_loader, device)
+    #
+    # print(f'steps = {steps}')
+    # print(f'losses = {train_losses}')
+    # print(f'train_accuracies = {train_accuracies}')
+    # print(f'test_accuracies = {test_accuracies}')
