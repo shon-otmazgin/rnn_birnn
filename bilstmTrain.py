@@ -46,12 +46,12 @@ def pad_collate(batch, token_pad, pre_pad, suf_pad, char_pad, y_pad):
 
 def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
     criterion = nn.CrossEntropyLoss(ignore_index=y_pad)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    optimizer = torch.optim.AdamW(model.parameters(), weight_decay=0.01, lr=1e-3)
 
     train_loss = 0
     seen_sents = 0
     best_acc = 0
-    eval = 500
+    eval = 5000
     eval_time = 1
 
     accuracies = []
@@ -95,7 +95,15 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
 
                 print(f'Train loss: {(loss / 500):.8f}')
                 train_loss = 0
-
+    if dev_loader:
+        acc = predict(model, dev_loader, device, y_pad, o_id)
+        print(f'Dev acc:{acc:.8f}')
+        if acc > best_acc:
+            best_acc = acc
+            state_dict = model.state_dict()
+        print(f'Best Dev acc:{best_acc:.8f}')
+        accuracies.append(acc)
+        steps.append(seen_sents)
     if state_dict:
         torch.save(state_dict, model_path)
     else:
@@ -154,7 +162,7 @@ if __name__ == '__main__':
     vocab_path = args.vocab_path
 
     print(args)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     tokens2ids, pretrained_vecs = None, None
@@ -175,7 +183,7 @@ if __name__ == '__main__':
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
     o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
     if dev_path:
@@ -185,7 +193,7 @@ if __name__ == '__main__':
                                  pre2ids=train_dataset.pre2ids,
                                  suf2ids=train_dataset.suf2ids,
                                  tags2ids=train_dataset.tags2ids)
-        dev_loader = DataLoader(dev_dataset, batch_size=256, shuffle=False,
+        dev_loader = DataLoader(dev_dataset, batch_size=512, shuffle=False,
                                 collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
     else:
         dev_loader = None
