@@ -95,14 +95,14 @@ def gen_start_end_same_digit_dataset(n):
 
     for i in range(n):
         s = gen_19()
-        while isStart_end_same(s) or len(s) <= 0 or s in examples:
+        while isDivided_by3(s) or len(s) <= 0:
             s = gen_19()
         examples.append((s, 0))
 
     size = len(examples)
     for i in range(size):
         p = gen_19()
-        while not isStart_end_same(p) or len(p) <= 0 or p in examples:
+        while not isDivided_by3(p) or len(p) <= 0:
             p = gen_19()
         examples.append((p, 1))
 
@@ -111,9 +111,9 @@ def gen_start_end_same_digit_dataset(n):
     return examples[0:t], examples[t:]
 
 
-def isStart_end_same(s):
+def isDivided_by3(s):
     ''' check if a string start and end with the same digit'''
-    return s[0] == s[-1]
+    return int(s) % 3 == 0
 
 
 def pad_collate(batch):
@@ -246,7 +246,7 @@ if __name__ == '__main__':
 
     # trainset, testset = gen_primes_dataset(n=50000)
     # trainset, testset = gen_palindrome_dataset(n=1500)
-    trainset, testset = gen_start_end_same_digit_dataset(n=5000)
+    trainset, testset = gen_start_end_same_digit_dataset(n=2500)
 
     train_pos = sum([1 for x, y in trainset if y == 1])
     test_pos = sum([1 for x, y in testset if y == 1])
