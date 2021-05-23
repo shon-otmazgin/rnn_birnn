@@ -6,6 +6,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from tqdm import trange
 from tqdm import tqdm
+import pickle
 
 from data import PAD, TagDataset, load_pretrained_embeds
 from models import BiLSTMTagger
@@ -104,11 +105,9 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
         print(f'Best Dev acc:{best_acc:.8f}')
         accuracies.append(acc)
         steps.append(seen_sents)
-    if state_dict:
-        torch.save(state_dict, model_path)
-    else:
-        torch.save(model.state_dict(), model_path)
-    return best_acc, accuracies, steps
+    if state_dict is None:
+        state_dict = model.state_dict()
+    return best_acc, accuracies, steps, state_dict
 
 
 def predict(model, loader, device, y_pad, o_id):
@@ -212,8 +211,14 @@ if __name__ == '__main__':
                          char_level=char_level,
                          pretrained_vecs=pretrained_vecs)
     model.to(device)
-    best_acc, accuracies, steps = train(model, train_loader, dev_loader, device, y_pad, o_id, model_path)
+    best_acc, accuracies, steps, state_dict = train(model, train_loader, dev_loader, device, y_pad, o_id, model_path)
 
     print(f'steps = {steps}')
     print(f'method_{method} = {accuracies}')
     print(f'method_{method} best_acc_dev: {best_acc}')
+
+    d = {'model': state_dict, 'train_dataset': train_dataset}
+
+    print(f'Saving model and train dataset to: {model_path}')
+    with open(model_path, 'wb') as handle:
+        pickle.dump(d, handle, protocol=pickle.HIGHEST_PROTOCOL)
