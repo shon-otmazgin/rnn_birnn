@@ -1,7 +1,3 @@
-Running RNN acceptor:
- - python experiment.py
-
-Assumptions - bilstmTrain.py:
 usage: bilstmTrain.py [-h] [--devFile DEV_PATH] [--vecFile VEC_PATH] [--vocabFile VOCAB_PATH] [--batchSize BATCH_SIZE] repr trainFile modelFile
 
 LSTM Tagger
@@ -20,5 +16,27 @@ optional arguments:
   --batchSize BATCH_SIZE
                         batch size to train. Default:5
 
-* data files
+EXAMPLE:
+python3 bilstmTrain.py c data/pos/train model_pos_c --devFile data/pos/dev --vecFile data/wordVectors.txt --vocabFile data/vocab.txt --batchSize 10
+
+########################################################################################################################
+########################################################################################################################
+########################################################################################################################
+usage: bilstmPredict.py [-h] repr modelFile inputFile
+
+LSTM Tagger
+
+positional arguments:
+  repr        one of a,b,c,d
+  modelFile   file to save the model
+  inputFile   the blind input file to tag
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+
+EXAMPLE:
+python3 bilstmPredict.py c model_ner data/ner/test
+
+Note: The saving of test4.ner and test4.pos expect to receive the task-name within the path (e.g., ner/data/test)
 
