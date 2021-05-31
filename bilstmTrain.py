@@ -223,5 +223,6 @@ if __name__ == '__main__':
         'tokens2ids': train_dataset.tokens2ids,
         'char2ids': train_dataset.char2ids,
         'pre2ids': train_dataset.pre2ids,
-        'suf2ids': train_dataset.suf2ids
+        'suf2ids': train_dataset.suf2ids,
+        'tag2ids': train_dataset.tags2ids,
     }, model_path)

@@ -84,8 +84,7 @@ if __name__ == '__main__':
     print(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
-    with open(model_path, 'rb') as f:
-        state_dict, train_dataset = pickle.load(f)
+    checkpoint = torch.load(model_path, map_location=device)
 
     pretrained_vecs = None
     if method == 'a':
@@ -97,25 +96,30 @@ if __name__ == '__main__':
     elif method == 'd':
         token_level, pre_suf_level, char_level = True, False, True
 
-    token_pad = train_dataset.tokens2ids[PAD]
-    pre_pad = train_dataset.pre2ids[PAD]
-    suf_pad = train_dataset.suf2ids[PAD]
-    char_pad = train_dataset.char2ids[PAD]
+    model_state_dict = checkpoint['model_state_dict']
+    tokens2ids = checkpoint['tokens2ids']
+    char2ids = checkpoint['char2ids']
+    pre2ids = checkpoint['pre2ids']
+    suf2ids = checkpoint['suf2ids']
+
+    token_pad = tokens2ids[PAD]
+    pre_pad = pre2ids[PAD]
+    suf_pad = suf2ids[PAD]
+    char_pad = char2ids[PAD]
 
     test_dataset = TagDataset(input_file, return_y=False,
-                                tokens2ids=train_dataset.tokens2ids,
-                                char2ids=train_dataset.char2ids,
-                                pre2ids=train_dataset.pre2ids,
-                                suf2ids=train_dataset.suf2ids,
+                                tokens2ids=tokens2ids,
+                                char2ids=char2ids,
+                                pre2ids=pre2ids,
+                                suf2ids=suf2ids,
                               )
-    test_loader = DataLoader(test_dataset, batch_size=100, shuffle=False,
-                            collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad))
+    test_loader = DataLoader(test_dataset, batch_size=100, shuffle=False, collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad))
 
-    model = BiLSTMTagger(vocab_size=train_dataset.vocab_size,
-                         pre_vocab_size=train_dataset.pre_vocab_size,
-                         suf_vocab_size=train_dataset.suf_vocab_size,
-                         alphabet_size=train_dataset.alphabet_size,
-                         tagset_size=train_dataset.tagset_size,
+    model = BiLSTMTagger(vocab_size=len(tokens2ids.keys()),
+                         pre_vocab_size=len(pre2ids.keys()),
+                         suf_vocab_size=len(suf2ids.keys()),#.suf_vocab_size,
+                         alphabet_size=len(char2ids.keys()),#.alphabet_size,
+                         tagset_size=,#train_dataset.tagset_size,
                          token_padding_idx=token_pad,
                          pre_padding_idx=pre_pad,
                          suf_padding_idx=suf_pad,
@@ -125,16 +129,6 @@ if __name__ == '__main__':
                          char_level=char_level,
                          pretrained_vecs=pretrained_vecs)
 
-    model.load_state_dict(state_dict=state_dict)
+    model.load_state_dict(state_dict=model_state_dict)
     model.to(device)
-    # best_acc, accuracies, steps, state_dict = train(model, train_loader, dev_loader, device, y_pad, o_id, model_path)
-    #
-    # print(f'steps = {steps}')
-    # print(f'method_{method} = {accuracies}')
-    # print(f'method_{method} best_acc_dev: {best_acc}')
-    #
-    # t = state_dict, train_dataset
-    #
-    # print(f'Saving model and train dataset to: {model_path} is a tuple (state_dict, train_dataset)')
-    # with open(model_path, 'wb') as handle:
-    #     pickle.dump(t, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
