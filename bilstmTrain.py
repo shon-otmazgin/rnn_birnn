@@ -50,17 +50,16 @@ def train(model, train_loader, dev_loader, device, y_pad, o_id, model_path):
     train_loss = 0
     seen_sents = 0
     best_acc = 0
-    eval = 5000
+    eval = 500
     eval_time = 1
 
     accuracies = []
     steps = []
     state_dict = None
 
-    train_iterator = trange(0, 5, desc="Epoch", position=0)
+    train_iterator = range(5)
     for epoch in train_iterator:
-        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-        for step, (xx_tokens_pad, xx_pre_pad, xx_suf_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(epoch_iterator):
+        for step, (xx_tokens_pad, xx_pre_pad, xx_suf_pad, xx_chars_pad, yy_pad, x_tokens_lens, x_chars_lens, y_lens) in enumerate(train_loader):
             model.train()
             model.zero_grad()
             tokens_input_ids = xx_tokens_pad.to(device)
@@ -149,6 +148,8 @@ if __name__ == '__main__':
     parser.add_argument("--devFile", dest='dev_path', type=str, help='dev file to calc acc during train')
     parser.add_argument("--vecFile", dest='vec_path', type=str, help='file to pretrained vectors')
     parser.add_argument("--vocabFile", dest='vocab_path', type=str, help='file to the vocab of pretrained vectors')
+    parser.add_argument("--batchSize", dest='batch_size', type=int, help='batch size to train. Default:5', default=5)
+
     args = parser.parse_args()
 
     method = args.repr
@@ -157,6 +158,7 @@ if __name__ == '__main__':
     model_path = args.modelFile
     vec_path = args.vec_path
     vocab_path = args.vocab_path
+    batch_size = args.batch_size
 
     print(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -180,7 +182,7 @@ if __name__ == '__main__':
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
     o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
-    train_loader = DataLoader(train_dataset, batch_size=5, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
     if dev_path:

@@ -80,10 +80,9 @@ def train(model, train_loader, test_loader, device):
     train_accuracies = []
     test_accuracies = []
 
-    train_iterator = trange(0, 5, desc="Epoch", position=0)
+    train_iterator = range(5)
     for epoch in train_iterator:
-        epoch_iterator = tqdm(train_loader, desc="Iteration", position=0)
-        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(epoch_iterator):
+        for step, (xx_pad, yy_pad, x_lens, y_lens) in enumerate(train_loader):
             model.train()
             model.zero_grad()
             input_ids, y = xx_pad.to(device), yy_pad.to(device)
