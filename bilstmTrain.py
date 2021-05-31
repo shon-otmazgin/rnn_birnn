@@ -182,7 +182,7 @@ if __name__ == '__main__':
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
     o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
     if dev_path:
@@ -192,7 +192,7 @@ if __name__ == '__main__':
                                  pre2ids=train_dataset.pre2ids,
                                  suf2ids=train_dataset.suf2ids,
                                  tags2ids=train_dataset.tags2ids)
-        dev_loader = DataLoader(dev_dataset, batch_size=512, shuffle=False,
+        dev_loader = DataLoader(dev_dataset, batch_size=500, shuffle=False,
                                 collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
     else:
         dev_loader = None
@@ -217,8 +217,8 @@ if __name__ == '__main__':
     print(f'method_{method} = {accuracies}')
     print(f'method_{method} best_acc_dev: {best_acc}')
 
-    d = {'model': state_dict, 'train_dataset': train_dataset}
+    t = state_dict, train_dataset
 
-    print(f'Saving model and train dataset to: {model_path}')
+    print(f'Saving model and train dataset to: {model_path} is a tuple (state_dict, train_dataset)')
     with open(model_path, 'wb') as handle:
-        pickle.dump(d, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(t, handle, protocol=pickle.HIGHEST_PROTOCOL)
