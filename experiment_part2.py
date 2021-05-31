@@ -241,7 +241,7 @@ if __name__ == '__main__':
     random.seed(42)
     torch.manual_seed(42)
 
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     # trainset, testset = gen_primes_dataset(n=50000)

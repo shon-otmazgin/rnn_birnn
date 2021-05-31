@@ -161,7 +161,7 @@ if __name__ == '__main__':
     vocab_path = args.vocab_path
 
     print(args)
-    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running device: {device}')
 
     tokens2ids, pretrained_vecs = None, None
