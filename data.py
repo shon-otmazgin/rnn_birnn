@@ -118,7 +118,9 @@ class TagDataset(Dataset):
         self.suf_vocab_size = len(self.suf2ids.keys())
         self.tagset_size = len(self.tags2ids.keys())
 
+        self.sentences = self.X
         self.X = [self._get_x_ids(x) for x in self.X]
+
         if return_y:
             self.y = [self._get_y_ids(y) for y in self.y]
 

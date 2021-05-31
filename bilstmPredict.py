@@ -8,11 +8,9 @@ from models import BiLSTMTagger
 from torch.nn.utils.rnn import pad_sequence
 
 
-def predict(model, loader, device, y_pad, o_id, tag2ids):
+def predict(model, loader, device, tag2ids):
     ids2tags = {v: k for k, v in tag2ids.items()}
     preds = []
-    correct = 0
-    total = 0
 
     model.eval()
     with torch.no_grad():
@@ -23,15 +21,14 @@ def predict(model, loader, device, y_pad, o_id, tag2ids):
             char_input_ids = xx_chars_pad.to(device)
 
             logits = model(tokens_input_ids, pre_input_ids, suf_input_ids, char_input_ids, x_tokens_lens, x_chars_lens)  # [batch, seq_len, tagset]
-            probs = logits.softmax(dim=2).argmax(dim=2) # [batch, seq_len, 1]
+            probs = logits.softmax(dim=2).argmax(dim=2) # [batch, seq_len]
             for b in range(probs.shape[0]):
-                for sentence in probs[b, :, :]:
-                    sentence_len = x_tokens_lens[b]
-                    tag_ids = sentence[0:sentence_len, :]
-                    preds.extend([ids2tags[t_id] for t_id in tag_ids])
+                sentence = probs[b]
+                sentence_len = x_tokens_lens[b]
+                tag_ids = sentence[0:sentence_len]
+                preds.append([ids2tags[t_id.item()] for t_id in tag_ids])
 
-    print(preds)
-
+    return preds
 
 
 
@@ -74,12 +71,14 @@ if __name__ == '__main__':
     parser.add_argument('repr', metavar='repr', type=str, help='one of a,b,c,d')
     parser.add_argument('modelFile', type=str, help='file to save the model')
     parser.add_argument('inputFile', type=str, help='the blind input file to tag')
+    # parser.add_argument('--task', dest='task', type=str, help='task to run - this way you can save the predictions')
 
     args = parser.parse_args()
 
     method = args.repr
     model_path = args.modelFile
     input_file = args.inputFile
+    task = "ner" if "ner" in input_file else "pos"
 
     print(args)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -101,6 +100,7 @@ if __name__ == '__main__':
     char2ids = checkpoint['char2ids']
     pre2ids = checkpoint['pre2ids']
     suf2ids = checkpoint['suf2ids']
+    tags2ids = checkpoint['tag2ids']
 
     token_pad = tokens2ids[PAD]
     pre_pad = pre2ids[PAD]
@@ -112,14 +112,15 @@ if __name__ == '__main__':
                                 char2ids=char2ids,
                                 pre2ids=pre2ids,
                                 suf2ids=suf2ids,
+                              tags2ids=tags2ids
                               )
     test_loader = DataLoader(test_dataset, batch_size=100, shuffle=False, collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad))
 
     model = BiLSTMTagger(vocab_size=len(tokens2ids.keys()),
                          pre_vocab_size=len(pre2ids.keys()),
-                         suf_vocab_size=len(suf2ids.keys()),#.suf_vocab_size,
-                         alphabet_size=len(char2ids.keys()),#.alphabet_size,
-                         tagset_size=,#train_dataset.tagset_size,
+                         suf_vocab_size=len(suf2ids.keys()),
+                         alphabet_size=len(char2ids.keys()),
+                         tagset_size=len(tags2ids.keys()),
                          token_padding_idx=token_pad,
                          pre_padding_idx=pre_pad,
                          suf_padding_idx=suf_pad,
@@ -132,3 +133,10 @@ if __name__ == '__main__':
     model.load_state_dict(state_dict=model_state_dict)
     model.to(device)
 
+    preds = predict(model, test_loader, device, tags2ids)
+
+    with open(f"test4.{task}", "w") as f:
+        for sentence, tags in zip(test_dataset.sentences, preds):
+            for word, tag in zip(sentence, tags):
+                f.write(f"{word} {tag}" + "\n")
+            f.write("\n")
