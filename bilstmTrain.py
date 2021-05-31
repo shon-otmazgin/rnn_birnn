@@ -4,8 +4,6 @@ import torch
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
-from tqdm import trange
-from tqdm import tqdm
 import pickle
 
 from data import PAD, TagDataset, load_pretrained_embeds
@@ -182,7 +180,7 @@ if __name__ == '__main__':
     char_pad = train_dataset.char2ids[PAD]
     y_pad = len(train_dataset.tags2ids)
     o_id = train_dataset.tags2ids['O'] if 'O' in train_dataset.tags2ids else y_pad
-    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True,
+    train_loader = DataLoader(train_dataset, batch_size=5, shuffle=True,
                               collate_fn=lambda b: pad_collate(b, token_pad, pre_pad, suf_pad, char_pad, y_pad))
 
     if dev_path:
