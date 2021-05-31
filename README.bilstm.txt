@@ -1,3 +1,6 @@
+Shon Otmazgin 305394975
+Royi Rassin 311334734
+
 usage: bilstmTrain.py [-h] [--devFile DEV_PATH] [--vecFile VEC_PATH] [--vocabFile VOCAB_PATH] [--batchSize BATCH_SIZE] repr trainFile modelFile
 
 LSTM Tagger

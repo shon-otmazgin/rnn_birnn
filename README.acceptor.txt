@@ -1,3 +1,6 @@
+Shon Otmazgin 305394975
+Royi Rassin 311334734
+
 Running RNN acceptor:
  - python experiment.py
 
