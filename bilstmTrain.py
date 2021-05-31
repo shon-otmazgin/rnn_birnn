@@ -217,8 +217,11 @@ if __name__ == '__main__':
     print(f'method_{method} = {accuracies}')
     print(f'method_{method} best_acc_dev: {best_acc}')
 
-    t = state_dict, train_dataset
-
-    print(f'Saving model and train dataset to: {model_path} is a tuple (state_dict, train_dataset)')
-    with open(model_path, 'wb') as handle:
-        pickle.dump(t, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print(f'Saving model and train dataset to: {model_path} is a checkpoint dict')
+    torch.save({
+        'model_state_dict': state_dict,
+        'tokens2ids': train_dataset.tokens2ids,
+        'char2ids': train_dataset.char2ids,
+        'pre2ids': train_dataset.pre2ids,
+        'suf2ids': train_dataset.suf2ids
+    }, model_path)
