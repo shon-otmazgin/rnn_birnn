@@ -171,7 +171,8 @@ if __name__ == '__main__':
         token_level, pre_suf_level, char_level = False, False, True
     elif method == 'c':
         token_level, pre_suf_level, char_level = True, True, False
-        tokens2ids, pretrained_vecs = load_pretrained_embeds(vec_path, vocab_path)
+        if vec_path is not None and vocab_path is not None:
+            tokens2ids, pretrained_vecs = load_pretrained_embeds(vec_path, vocab_path)
     elif method == 'd':
         token_level, pre_suf_level, char_level = True, False, True
 
